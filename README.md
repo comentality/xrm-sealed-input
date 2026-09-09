@@ -25,7 +25,7 @@ Dataverse column security's job; the manual says so.
   last typed character. `sealedInput.ts` holds the rules with no React or DOM
   in them; `SealedInputView.tsx` is the UI; `index.ts` wires the platform.
 - `e2e/`: Playwright Test suite against the pcf-start harness hosted headlessly
-  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 21 tests
+  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 24 tests
   covering masking and reveal timing, the digit filter and length cap, Ctrl+V
   and dispatched paste, drop, cut, copy and context-menu events, mismatch,
   match and store, Replace, Cancel, Clear, and the SIN checksum. `npm run docs`
@@ -63,7 +63,9 @@ Each of these was an open question in the first README.
   cannot block save (standard controls have no field notification API);
   documented as a limitation.
 - **Stored view.** A fixed eight dots regardless of length, with Replace and
-  Clear. Clear writes `""`; returning `null`/`undefined` from `getOutputs`
+  Clear. The entry closes itself on commit rather than waiting for the host to
+  push a new value: replacing a value with the identical value gives the host
+  nothing to push, and the control used to stay stuck in entry mode. Clear writes `""`; returning `null`/`undefined` from `getOutputs`
   means "unchanged" and does not blank the column (verified in the harness).
 - **Tooling.** Skeleton copied from `xrm-plain-number` rather than
   `pac pcf init`, which pins Fluent 9.68.0 that the environment rejects.

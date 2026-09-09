@@ -12,8 +12,8 @@ import {
 } from "./sealedInput";
 
 export interface ISealedInputViewProps {
-  /** Bound value as the platform holds it. Empty or null means nothing stored. */
-  stored: string | null;
+  /** Bound value as the platform holds it. Empty means nothing stored. */
+  stored: string;
   disabled: boolean;
   rules: Rules;
   /** How long the character just typed stays readable. 0 masks at once. */
@@ -46,7 +46,7 @@ type Slot = "first" | "second";
 
 export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, onCommit }) => {
   const styles = useStyles();
-  const hasStored = stored !== null && stored !== "";
+  const hasStored = stored !== "";
 
   const [first, setFirst] = React.useState("");
   const [second, setSecond] = React.useState("");
@@ -85,13 +85,18 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   const firstError = validateEntry(first, rules);
   const secondError = firstError ? null : validateConfirm(first, second);
 
-  // Commit the moment both entries agree and pass validation.
+  // Commit the moment both entries agree and pass validation. The entry is
+  // closed here as well as in the reset effect above: when the new value equals
+  // the stored one the host has nothing to push, and the effect would not run.
   React.useEffect(() => {
     if (!entering || !canCommit(first, second, rules)) return;
     window.clearTimeout(timer.current);
     setRevealed(null);
     setJustSaved(true);
     onCommit(first);
+    setFirst("");
+    setSecond("");
+    setReplacing(false);
   }, [first, second]);
 
   // Native beforeinput is the one place every edit path goes through: keys, IME,
@@ -218,7 +223,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           </Button>
         )}
         {replacing && (
-          <Button size="small" appearance="subtle" onClick={() => setReplacing(false)} data-testid="sealed-cancel">
+          <Button size="small" appearance="subtle" onClick={() => { setFirst(""); setSecond(""); setRevealed(null); setReplacing(false); }} data-testid="sealed-cancel">
             Cancel
           </Button>
         )}

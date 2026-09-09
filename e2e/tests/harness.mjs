@@ -76,3 +76,19 @@ export function control(page) {
 export async function shot(page, name) {
   await page.locator('.control-container').first().screenshot({ path: path.join(shotsDir, `${name}.png`) });
 }
+
+/**
+ * Collects console errors and warnings from the control, ignoring the
+ * harness's own noise (its NaN width style and a 404 for a missing asset).
+ */
+export function collectConsole(page) {
+  const messages = [];
+  page.on('console', (m) => {
+    if (m.type() !== 'error' && m.type() !== 'warning') return;
+    const text = m.text();
+    if (text.includes('`NaN` is an invalid value') || text.includes('Failed to load resource')) return;
+    messages.push(`${m.type()}: ${text}`);
+  });
+  page.on('pageerror', (e) => messages.push(`pageerror: ${String(e)}`));
+  return messages;
+}

@@ -22,7 +22,7 @@ export class SealedInput implements ComponentFramework.ReactControl<IInputs, IOu
       maxLength: p.maxLength.raw ?? 0,
     };
     const props: ISealedInputViewProps = {
-      stored: this.value,
+      stored: this.value ?? "", // hosts alternate null and "" for an empty column; treat them as one
       disabled: context.mode.isControlDisabled,
       rules,
       revealMs: p.revealMs.raw ?? 1000,

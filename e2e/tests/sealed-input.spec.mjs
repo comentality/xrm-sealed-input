@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openHarness, harnessValue, shot, dots } from './harness.mjs';
+import { openHarness, harnessValue, shot, dots, collectConsole } from './harness.mjs';
 
 // 046454286 is the published Luhn-valid SIN example; 046454287 fails the checksum.
 const GOOD_SIN = '046454286';
@@ -115,6 +115,11 @@ test.describe('clipboard and other injection', () => {
     await page.keyboard.press('Shift+Insert');
     await expect(c.first).toHaveValue('');
     await expect(harnessValue(page)).toHaveValue('');
+    // Positive control: the same keystroke does paste into an ordinary input,
+    // so the empty field above is the control's doing, not the browser's.
+    await harnessValue(page).click();
+    await page.keyboard.press('Control+V');
+    await expect(harnessValue(page)).toHaveValue('4242');
   });
 
   test('paste, drop, cut, copy and context menu events are cancelled', async ({ page }) => {
@@ -209,6 +214,47 @@ test.describe('confirmation and storing', () => {
     await c.cancel.click();
     await expect(c.stored).toBeVisible();
     await expect(harnessValue(page)).toHaveValue('secret123');
+  });
+
+  test('Replace with the same value again closes the entry', async ({ page }) => {
+    // The host has nothing new to push when the value is unchanged, so the
+    // control must close the entry on its own.
+    const c = await openHarness(page, { value: '777', revealMs: 0 });
+    await c.replace.click();
+    await c.first.click();
+    await page.keyboard.type('777');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('777');
+    await expect(c.stored).toBeVisible();
+    await expect(harnessValue(page)).toHaveValue('777');
+  });
+
+  test('Cancel forgets what was typed', async ({ page }) => {
+    const c = await openHarness(page, { value: 'secret123', revealMs: 0 });
+    await c.replace.click();
+    await c.first.click();
+    await page.keyboard.type('12');
+    await c.cancel.click();
+    await c.replace.click();
+    await expect(c.first).toHaveValue('');
+    await expect(c.second).toHaveValue('');
+  });
+
+  test('the whole flow raises no console errors', async ({ page }) => {
+    const messages = collectConsole(page);
+    const c = await openHarness(page, { revealMs: 200 });
+    await c.first.click();
+    await page.keyboard.type('4321');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('1');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('4321');
+    await expect(c.stored).toBeVisible();
+    await c.replace.click();
+    await c.cancel.click();
+    await c.clear.click();
+    await expect(c.entry).toBeVisible();
+    expect(messages).toEqual([]);
   });
 
   test('Replace then a matching entry overwrites the value', async ({ page }) => {
