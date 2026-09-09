@@ -2,6 +2,7 @@ import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import { SealedInputView, ISealedInputViewProps } from "./SealedInputView";
 import { Characters, Rules, Validation } from "./sealedInput";
 import * as React from "react";
+import { FluentProvider, Theme, webLightTheme } from "@fluentui/react-components";
 
 export class SealedInput implements ComponentFramework.ReactControl<IInputs, IOutputs> {
   private notifyOutputChanged: () => void;
@@ -26,11 +27,18 @@ export class SealedInput implements ComponentFramework.ReactControl<IInputs, IOu
       rules,
       revealMs: p.revealMs.raw ?? 1000,
       onCommit: (v) => {
-        this.value = v;
+        this.value = v; // "" clears the column; undefined would mean "unchanged"
         this.notifyOutputChanged();
       },
     };
-    return React.createElement(SealedInputView, props);
+    // The form host hands us its theme; the test harness and older hosts do not,
+    // so fall back to the web light theme rather than rendering token-less.
+    const theme: Theme = (context.fluentDesignLanguage?.tokenTheme as Theme | undefined) ?? webLightTheme;
+    return React.createElement(
+      FluentProvider,
+      { theme, style: { width: "100%", background: "transparent" } },
+      React.createElement(SealedInputView, props),
+    );
   }
 
   public getOutputs(): IOutputs {

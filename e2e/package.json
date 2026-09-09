@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "playwright test",
-    "harness": "node harness-server.mjs"
+    "harness": "node harness-server.mjs",
+    "docs": "node copy-docs.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"

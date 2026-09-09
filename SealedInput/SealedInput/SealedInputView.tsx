@@ -18,11 +18,12 @@ export interface ISealedInputViewProps {
   rules: Rules;
   /** How long the character just typed stays readable. 0 masks at once. */
   revealMs: number;
-  onCommit: (value: string | null) => void;
+  /** Empty string clears; null is never sent because the platform reads it as "no change". */
+  onCommit: (value: string) => void;
 }
 
 const useStyles = makeStyles({
-  root: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS, width: "100%" },
+  root: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS, width: "100%", textAlign: "left" },
   row: { display: "flex", alignItems: "center", columnGap: tokens.spacingHorizontalS },
   dots: { letterSpacing: "0.15em", fontFamily: tokens.fontFamilyMonospace, color: tokens.colorNeutralForeground2 },
   hint: { color: tokens.colorNeutralForeground3 },
@@ -162,7 +163,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           <Button size="small" appearance="secondary" onClick={() => { setJustSaved(false); setReplacing(true); }} data-testid="sealed-replace">
             Replace
           </Button>
-          <Button size="small" appearance="subtle" onClick={() => { setJustSaved(false); onCommit(null); }} data-testid="sealed-clear">
+          <Button size="small" appearance="subtle" onClick={() => { setJustSaved(false); onCommit(""); }} data-testid="sealed-clear">
             Clear
           </Button>
         </div>
@@ -186,7 +187,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           onChange={() => undefined}
           onBlur={() => setRevealed(null)}
           onKeyDown={onKeyDown("first")}
-          appearance="filled-lighter"
+          appearance="filled-darker"
           className={styles.input}
           aria-label="Enter the value"
           data-testid="sealed-first"
@@ -202,7 +203,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           value={display(second, revealed === "second")}
           onChange={() => undefined}
           onBlur={() => setRevealed(null)}
-          appearance="filled-lighter"
+          appearance="filled-darker"
           className={styles.input}
           aria-label="Enter the value again"
           data-testid="sealed-second"

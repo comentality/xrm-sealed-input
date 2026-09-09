@@ -13,3 +13,5 @@ e2e/login.log
 e2e/login.err
 e2e/run.log
 e2e/run.err
+e2e/test-results/
+e2e/report/
