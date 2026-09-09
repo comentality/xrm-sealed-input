@@ -51,20 +51,31 @@ export async function setupForm(page) {
   const bankParams = `<value>${BANK}</value><characters static="true" type="Enum">digits</characters><validation static="true" type="Enum">none</validation><maxLength static="true" type="Whole.None">12</maxLength><revealMs static="true" type="Whole.None">1000</revealMs>`;
   const cell = (id, label, control) =>
     `<row><cell id="${id}" showlabel="true" locklevel="0"><labels><label description="${label}" languagecode="1033" /></labels>${control}</cell></row>`;
+  // Two tab columns: a wide one (side-by-side layout) and a narrow one that
+  // shows the SIN column again (stacked layout), so one screenshot has both.
+  const sinNarrowCtrlId = '{5ea1ed00-aaaa-4bbb-8ccc-000000000023}';
   const formxml =
     `<form showImage="true">` +
     `<tabs><tab name="general" id="{5ea1ed00-aaaa-4bbb-8ccc-000000000060}" IsUserDefined="0" verticallayout="true" showlabel="true" expanded="true" locklevel="0">` +
-    `<labels><label description="Payment details" languagecode="1033" /></labels><columns><column width="100%"><sections>` +
+    `<labels><label description="Payment details" languagecode="1033" /></labels><columns>` +
+    `<column width="66%"><sections>` +
     `<section name="payment" id="{5ea1ed00-aaaa-4bbb-8ccc-000000000061}" showlabel="true" showbar="false" IsUserDefined="0" layout="varwidth" columns="1" labelwidth="180" celllabelposition="Left" locklevel="0">` +
-    `<labels><label description="Payment details" languagecode="1033" /></labels><rows>` +
+    `<labels><label description="Payment details (wide column)" languagecode="1033" /></labels><rows>` +
     cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000040}', 'First Name', `<control id="firstname" classid="${TEXT_CLASSID}" datafieldname="firstname" disabled="false" />`) +
     cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000041}', 'Last Name', `<control id="lastname" classid="${TEXT_CLASSID}" datafieldname="lastname" disabled="false" />`) +
     cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000042}', 'SIN', `<control id="${sinCtrlId}" classid="${TEXT_CLASSID}" datafieldname="${SIN}" disabled="false" uniqueid="${sinCtrlId}" />`) +
     cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000043}', 'Bank account', `<control id="${bankCtrlId}" classid="${TEXT_CLASSID}" datafieldname="${BANK}" disabled="false" uniqueid="${bankCtrlId}" />`) +
-    `</rows></section></sections></column></columns></tab></tabs>` +
+    `</rows></section></sections></column>` +
+    `<column width="34%"><sections>` +
+    `<section name="narrow" id="{5ea1ed00-aaaa-4bbb-8ccc-000000000062}" showlabel="true" showbar="false" IsUserDefined="0" layout="varwidth" columns="1" labelwidth="115" celllabelposition="Top" locklevel="0">` +
+    `<labels><label description="Narrow column" languagecode="1033" /></labels><rows>` +
+    cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000044}', 'SIN (same column, narrow)', `<control id="${sinNarrowCtrlId}" classid="${TEXT_CLASSID}" datafieldname="${SIN}" disabled="false" uniqueid="${sinNarrowCtrlId}" />`) +
+    `</rows></section></sections></column>` +
+    `</columns></tab></tabs>` +
     `<controlDescriptions>` +
     `<controlDescription forControl="${sinCtrlId}">${sealed(sinParams)}</controlDescription>` +
     `<controlDescription forControl="${bankCtrlId}">${sealed(bankParams)}</controlDescription>` +
+    `<controlDescription forControl="${sinNarrowCtrlId}">${sealed(sinParams)}</controlDescription>` +
     `</controlDescriptions>` +
     `</form>`;
 

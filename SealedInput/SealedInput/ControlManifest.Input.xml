@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
-  <control namespace="KK" constructor="SealedInput" version="0.1.0" display-name-key="Sealed Input" description-key="Entry field for sensitive numbers such as bank accounts and SIN. Typed characters are masked, the clipboard is blocked, and the value must be entered twice before it is stored." control-type="virtual" >
+  <control namespace="KK" constructor="SealedInput" version="0.1.1" display-name-key="Sealed Input" description-key="Entry field for sensitive numbers such as bank accounts and SIN. Typed characters are masked, the clipboard is blocked, and the value must be entered twice before it is stored." control-type="virtual" >
     <external-service-usage enabled="false">
     </external-service-usage>
     <property name="value" display-name-key="Value" description-key="Text column that receives the entered value" of-type="SingleLine.Text" usage="bound" required="true" />
@@ -13,6 +13,11 @@
       <value name="sin" display-name-key="Canadian SIN">sin</value>
     </property>
     <property name="maxLength" display-name-key="Maximum length" description-key="Longest value that can be typed. Zero means no limit. Ignored when validation is SIN, which is always nine." of-type="Whole.None" usage="input" required="false" default-value="0" />
+    <property name="layout" display-name-key="Layout" description-key="Auto puts Enter and Enter again side by side when the control is at least 480 pixels wide and stacks them otherwise." of-type="Enum" usage="input" required="false" default-value="auto">
+      <value name="auto" display-name-key="Auto by width">auto</value>
+      <value name="stacked" display-name-key="Stacked">stacked</value>
+      <value name="sideBySide" display-name-key="Side by side">sideBySide</value>
+    </property>
     <property name="revealMs" display-name-key="Reveal last character (ms)" description-key="How long the character just typed stays readable before it is masked. Zero masks at once." of-type="Whole.None" usage="input" required="false" default-value="1000" />
     <resources>
       <code path="index.ts" order="1"/>

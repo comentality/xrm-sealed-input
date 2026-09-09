@@ -4,6 +4,17 @@ export const MASK = "•"; // bullet
 export const STORED_DOTS = MASK.repeat(8); // fixed width on purpose: the stored view must not leak length
 
 export type Characters = "digits" | "any";
+export type Layout = "auto" | "stacked" | "sideBySide";
+
+/** Width from which the two entry fields sit side by side in auto layout. */
+export const SIDE_BY_SIDE_MIN_WIDTH = 480;
+
+/** Whether the two fields go side by side, given the layout setting and the measured width (0 = unknown). */
+export function sideBySide(layout: Layout, width: number): boolean {
+  if (layout === "sideBySide") return true;
+  if (layout === "stacked") return false;
+  return width >= SIDE_BY_SIDE_MIN_WIDTH;
+}
 export type Validation = "none" | "sin";
 
 export interface Rules {

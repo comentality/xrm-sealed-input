@@ -25,7 +25,7 @@ Dataverse column security's job; the manual says so.
   last typed character. `sealedInput.ts` holds the rules with no React or DOM
   in them; `SealedInputView.tsx` is the UI; `index.ts` wires the platform.
 - `e2e/`: Playwright Test suite against the pcf-start harness hosted headlessly
-  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 24 tests
+  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 28 tests
   covering masking and reveal timing, the digit filter and length cap, Ctrl+V
   and dispatched paste, drop, cut, copy and context-menu events, mismatch,
   match and store, Replace, Cancel, Clear, and the SIN checksum. `npm run docs`
@@ -74,6 +74,11 @@ Each of these was an open question in the first README.
   push a new value: replacing a value with the identical value gives the host
   nothing to push, and the control used to stay stuck in entry mode. Clear writes `""`; returning `null`/`undefined` from `getOutputs`
   means "unchanged" and does not blank the column (verified in the harness).
+- **Layout (added later on 2026-09-09).** The control measures its own width
+  with a ResizeObserver and puts Enter and Enter again side by side from 480
+  pixels, stacked below. A `layout` property forces either. Measured rather
+  than taken from `allocatedWidth` so the harness, the form and the mock-up all
+  behave the same.
 - **Tooling.** Skeleton copied from `xrm-plain-number` rather than
   `pac pcf init`, which pins Fluent 9.68.0 that the environment rejects.
   Playwright Test with a `webServer` entry, so `npx playwright test` is the
@@ -97,6 +102,13 @@ Each of these was an open question in the first README.
 - Static input properties in form XML: `<name static="true" type="Enum">v</name>`
   inside `<parameters>`, one `<customControl>` per formFactor 0, 1, 2. Worked
   first time.
+- After `pac pcf push` of a changed control the form showed "Error loading
+  control" for every instance and kept the old form layout. Two causes: the
+  app's client cache (localStorage, IndexedDB, Cache Storage) still held the
+  old form and bundle, and a form saved before a manifest property existed
+  hands the control no parameter object for it, so `p.layout.raw` threw. Fix:
+  clear those caches before opening the form (`shoot-form.mjs` does), guard
+  every input read with `?.`, and bump the manifest version on each push.
 - Robocopy of a Chromium profile stalls on the locked cookie database when any
   Chromium has it open; pass `/R:0 /W:0` and close the holder. An orphaned
   headless shell from a finished script will hold it indefinitely.

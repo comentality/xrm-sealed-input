@@ -8,20 +8,22 @@ numbers and Social Insurance Numbers.
 
 ## On a form
 
-A Contact form in a model-driven app, with the control on two columns. The
-SIN column is empty and waiting; the bank account already holds a value.
+A Contact form in a model-driven app. The wide column has the control on SIN
+and on bank account; the narrow column shows the SIN column once more. The
+control measures the cell it is given: from 480 pixels up, Enter and Enter
+again sit side by side; below that they stack.
 
-![Contact form: SIN empty with two entry fields, bank account stored as dots](img/form-real-empty.png)
+![Contact form: SIN empty in a wide and a narrow column, bank account stored](img/form-real-empty.png)
 
-Typing the SIN. Seven dots and the digit just typed; the bank account stays
-hidden.
+Typing the SIN in the wide column. The narrow copy stays empty until the
+value is stored.
 
-![SIN being typed on the form](img/form-real-typing.png)
+![SIN being typed on the form, side by side](img/form-real-typing.png)
 
-After the second entry matched. Both columns show dots only, and the form is
-marked unsaved until the record is saved.
+After the second entry matched. Every instance shows dots only, and the form
+is marked unsaved until the record is saved.
 
-![Both columns stored on the form](img/form-real-stored.png)
+![All instances stored on the form](img/form-real-stored.png)
 
 These are real screenshots taken by `e2e/run.mjs` in a test environment: it
 builds the fixture form, types the SIN twice, saves with Ctrl+S and reads the
@@ -42,11 +44,22 @@ masks the last character at once.
 |---|---|
 | ![three dots and a 4](img/entry-typing.png) | ![all dots](img/entry-masked.png) |
 
+In a wide cell the two fields share one line. The layout follows the width of
+the cell, so the same control stacks on a phone or in a narrow section.
+
+| Narrow cell | Wide cell |
+|---|---|
+| ![stacked](img/layout-narrow.png) | ![side by side](img/layout-wide.png) |
+
 Enter, or Tab, moves to the second field. When the second entry is as long as
 the first and differs, the control says so. Nothing is stored. Backspace and
 retype, or **Start over** to clear both fields.
 
 ![Does not match the first entry](img/entry-mismatch.png)
+
+Side by side, the message sits under the field it is about.
+
+![side by side mismatch](img/layout-wide-mismatch.png)
 
 The moment both entries agree the value is written to the column and the
 control collapses to a row of dots. The row is always eight dots, whatever the
@@ -82,6 +95,7 @@ optional.
 | Validation | None | `Canadian SIN` requires nine digits with a valid Luhn checksum and caps typing at nine. |
 | Maximum length | 0 | Longest value that can be typed. 0 means no limit. Ignored when validation is SIN. |
 | Reveal last character (ms) | 1000 | How long the character just typed stays readable. 0 masks at once. |
+| Layout | Auto by width | `Auto` puts the two fields side by side from 480 pixels of width and stacks them below that. `Stacked` and `Side by side` force one or the other. |
 
 Suggested settings:
 

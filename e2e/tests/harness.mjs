@@ -39,9 +39,12 @@ async function setSelect(locator, value) {
  * Opens the harness and configures the control. The harness seeds the bound
  * value with "val", so an empty string is applied unless told otherwise.
  */
-export async function openHarness(page, { value = '', characters, validation, maxLength, revealMs } = {}) {
+export async function openHarness(page, { value = '', characters, validation, maxLength, revealMs, layout, width } = {}) {
+  if (width !== undefined) await page.setViewportSize({ width: Math.max(700, width + 60), height: 600 });
   await page.goto('/', { waitUntil: 'load' });
   await page.locator('.control-container [data-testid^="sealed-"]').first().waitFor({ timeout: 30_000 });
+  if (width !== undefined) await setWidth(page, width);
+  if (layout !== undefined) await setSelect(propertyRow(page, 'layout').locator('select'), layout);
   if (characters !== undefined) await setSelect(propertyRow(page, 'characters').locator('select'), characters);
   if (validation !== undefined) await setSelect(propertyRow(page, 'validation').locator('select'), validation);
   if (maxLength !== undefined) await setField(propertyRow(page, 'maxLength').locator('input'), maxLength);
@@ -51,6 +54,12 @@ export async function openHarness(page, { value = '', characters, validation, ma
   if (value === '') await expect(c.entry).toBeVisible();
   else await expect(c.stored).toBeVisible();
   return c;
+}
+
+/** The harness's "Component Container Width" box, in CSS pixels. */
+export async function setWidth(page, px) {
+  const box = page.locator('.io-item, .key-value-pair').filter({ hasText: 'Component Container Width' }).locator('input').first();
+  await setField(box, px);
 }
 
 export function control(page) {

@@ -29,6 +29,18 @@ export async function shootForm(page, setup) {
   const errorDlg = page.locator('[data-id="errorDialog_subtitle"], [data-id="dialogSubtitle"], [data-id="errorDialogTitle"]');
   out.attempts = [];
   let n = 0;
+  // The app caches form metadata and control bundles client-side; a form or
+  // control changed since the last visit shows up stale (or as "Error loading
+  // control") until those caches go.
+  const clearCaches = () => page.evaluate(async () => {
+    try { localStorage.clear(); sessionStorage.clear(); } catch {}
+    try {
+      const dbs = await indexedDB.databases();
+      await Promise.all(dbs.map((d) => new Promise((r) => { const q = indexedDB.deleteDatabase(d.name); q.onsuccess = q.onerror = q.onblocked = () => r(); })));
+    } catch {}
+    try { const keys = await caches.keys(); await Promise.all(keys.map((k) => caches.delete(k))); } catch {}
+  });
+  await clearCaches();
   for (const url of urls) {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await Promise.race([

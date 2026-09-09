@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openHarness, harnessValue, shot, dots, collectConsole } from './harness.mjs';
+import { openHarness, harnessValue, shot, dots, collectConsole, setWidth } from './harness.mjs';
 
 // 046454286 is the published Luhn-valid SIN example; 046454287 fails the checksum.
 const GOOD_SIN = '046454286';
@@ -307,5 +307,50 @@ test.describe('SIN validation', () => {
     await page.keyboard.type(GOOD_SIN);
     await expect(c.stored).toBeVisible();
     await expect(harnessValue(page)).toHaveValue(GOOD_SIN);
+  });
+});
+
+test.describe('layout', () => {
+  const rowOf = async (loc) => (await loc.boundingBox()).y;
+
+  test('a narrow cell stacks the fields', async ({ page }) => {
+    const c = await openHarness(page, { width: 360, revealMs: 60_000 });
+    await expect(c.entry).toHaveAttribute('data-layout', 'stacked');
+    expect(await rowOf(c.second)).toBeGreaterThan(await rowOf(c.first));
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await shot(page, 'layout-narrow');
+  });
+
+  test('a wide cell puts Enter and Enter again side by side', async ({ page }) => {
+    const c = await openHarness(page, { width: 900, revealMs: 60_000 });
+    await expect(c.entry).toHaveAttribute('data-layout', 'side-by-side');
+    expect(Math.abs((await rowOf(c.second)) - (await rowOf(c.first)))).toBeLessThan(2);
+    expect((await c.second.boundingBox()).x).toBeGreaterThan((await c.first.boundingBox()).x + 300);
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await shot(page, 'layout-wide');
+    // The mismatch message sits under the right-hand field.
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('1239');
+    await expect(c.errors).toHaveText(['Does not match the first entry.']);
+    expect((await c.errors.first().boundingBox()).x).toBeGreaterThan((await c.first.boundingBox()).x + 300);
+    await shot(page, 'layout-wide-mismatch');
+  });
+
+  test('the layout follows a resize', async ({ page }) => {
+    const c = await openHarness(page, { width: 900 });
+    await expect(c.entry).toHaveAttribute('data-layout', 'side-by-side');
+    await setWidth(page, 360);
+    await expect(c.entry).toHaveAttribute('data-layout', 'stacked');
+    await setWidth(page, 700);
+    await expect(c.entry).toHaveAttribute('data-layout', 'side-by-side');
+  });
+
+  test('layout can be forced either way', async ({ page }) => {
+    let c = await openHarness(page, { width: 900, layout: 'stacked' });
+    await expect(c.entry).toHaveAttribute('data-layout', 'stacked');
+    c = await openHarness(page, { width: 360, layout: 'sideBySide' });
+    await expect(c.entry).toHaveAttribute('data-layout', 'side-by-side');
   });
 });

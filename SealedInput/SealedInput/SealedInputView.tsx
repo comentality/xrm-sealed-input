@@ -1,12 +1,14 @@
 import * as React from "react";
 import { Button, Field, Input, Text, makeStyles, tokens } from "@fluentui/react-components";
 import {
+  Layout,
   Rules,
   STORED_DOTS,
   append,
   backspace,
   canCommit,
   display,
+  sideBySide,
   validateConfirm,
   validateEntry,
 } from "./sealedInput";
@@ -18,6 +20,8 @@ export interface ISealedInputViewProps {
   rules: Rules;
   /** How long the character just typed stays readable. 0 masks at once. */
   revealMs: number;
+  /** Auto switches to side by side at 480px of measured width. */
+  layout: Layout;
   /** Empty string clears; null is never sent because the platform reads it as "no change". */
   onCommit: (value: string) => void;
 }
@@ -25,6 +29,9 @@ export interface ISealedInputViewProps {
 const useStyles = makeStyles({
   root: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS, width: "100%", textAlign: "left" },
   row: { display: "flex", alignItems: "center", columnGap: tokens.spacingHorizontalS },
+  fields: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS },
+  fieldsSide: { flexDirection: "row", alignItems: "flex-start", columnGap: tokens.spacingHorizontalM },
+  field: { flex: "1 1 0", minWidth: 0 },
   dots: { letterSpacing: "0.15em", fontFamily: tokens.fontFamilyMonospace, color: tokens.colorNeutralForeground2 },
   hint: { color: tokens.colorNeutralForeground3 },
   input: { width: "100%" },
@@ -44,9 +51,25 @@ const quietAttrs = {
 
 type Slot = "first" | "second";
 
-export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, onCommit }) => {
+export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, onCommit }) => {
   const styles = useStyles();
   const hasStored = stored !== "";
+
+  // Measure our own width; the form cell, not the host API, decides the layout.
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const [width, setWidth] = React.useState(0);
+  React.useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    setWidth(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) setWidth(e.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+  const side = sideBySide(layout, width);
 
   const [first, setFirst] = React.useState("");
   const [second, setSecond] = React.useState("");
@@ -182,8 +205,9 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   }
 
   return (
-    <div className={styles.root} data-testid="sealed-entry">
-      <Field label="Enter" validationState={firstError ? "error" : "none"} validationMessage={firstError ?? undefined}>
+    <div className={styles.root} data-testid="sealed-entry" data-layout={side ? "side-by-side" : "stacked"} ref={rootRef}>
+      <div className={side ? `${styles.fields} ${styles.fieldsSide}` : styles.fields}>
+      <Field label="Enter" className={styles.field} validationState={firstError ? "error" : "none"} validationMessage={firstError ?? undefined}>
         <Input
           ref={firstRef}
           type="text"
@@ -200,7 +224,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           {...blocked}
         />
       </Field>
-      <Field label="Enter again" validationState={secondError ? "error" : "none"} validationMessage={secondError ?? undefined}>
+      <Field label="Enter again" className={styles.field} validationState={secondError ? "error" : "none"} validationMessage={secondError ?? undefined}>
         <Input
           ref={secondRef}
           type="text"
@@ -216,6 +240,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           {...blocked}
         />
       </Field>
+      </div>
       <div className={styles.row}>
         {(first.length > 0 || second.length > 0) && (
           <Button size="small" appearance="subtle" onClick={startOver} data-testid="sealed-startover">

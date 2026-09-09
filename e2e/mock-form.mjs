@@ -34,7 +34,9 @@ try {
   const select = async (loc, v) => { await loc.selectOption(v); await loc.dispatchEvent('change'); };
   const valueInput = row('value').locator('input[type=text]');
 
-  // Configure as a SIN field, with a long reveal so the typing shot is stable.
+  // Configure as a SIN field, with a long reveal so the typing shot is stable,
+  // and as wide as the form cell it is about to sit in.
+  await set(page.locator('.io-item, .key-value-pair').filter({ hasText: 'Component Container Width' }).locator('input').first(), 640);
   await select(row('validation').locator('select'), 'sin');
   await set(row('revealMs').locator('input'), 60000);
 
