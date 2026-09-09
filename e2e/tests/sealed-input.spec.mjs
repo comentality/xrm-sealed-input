@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openHarness, harnessValue, shot, dots, collectConsole, setWidth } from './harness.mjs';
+import { openHarness, harnessValue, shot, dots, collectConsole, setWidth, wrapInFormCell } from './harness.mjs';
 
 // 046454286 is the published Luhn-valid SIN example; 046454287 fails the checksum.
 const GOOD_SIN = '046454286';
@@ -373,5 +373,95 @@ test.describe('layout', () => {
     await expect(c.entry).toHaveAttribute('data-layout', 'stacked');
     c = await openHarness(page, { width: 360, layout: 'sideBySide' });
     await expect(c.entry).toHaveAttribute('data-layout', 'side-by-side');
+  });
+});
+
+test.describe('labels', () => {
+  // Outside a form cell (the harness) nothing names the column, so both
+  // fields are labelled, above. Inside a Unified Interface cell the form draws
+  // the column label itself: then only the second field gets a label, placed
+  // as the section places labels.
+  test('outside a form cell both fields are labelled, above', async ({ page }) => {
+    const c = await openHarness(page);
+    await expect(c.entry).toHaveAttribute('data-form-label', 'none');
+    await expect(c.entry).toHaveAttribute('data-labels', 'both');
+    await expect(c.entry).toHaveAttribute('data-label-position', 'above');
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
+  });
+
+  test('a form label on the left leaves only Re-enter, beside the second field', async ({ page }) => {
+    const c = await openHarness(page, { width: 560 });
+    await wrapInFormCell(page, { label: 'left' });
+    await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
+    await expect(c.entry).toHaveAttribute('data-labels', 'reenter-only');
+    await expect(c.entry).toHaveAttribute('data-label-position', 'inline');
+    await expect(c.labels).toHaveText(['Re-enter']);
+    await expect(c.first).toHaveAttribute('aria-label', 'SIN');
+    await expect(c.second).toHaveAttribute('aria-label', 'Re-enter SIN');
+    // The label sits beside the field, on the same line.
+    const label = await c.labels.first().boundingBox();
+    const input = await c.second.boundingBox();
+    expect(label.x + label.width).toBeLessThanOrEqual(input.x + 1);
+    await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-left.png` });
+  });
+
+  test('a form label on top leaves only Re-enter, above the second field', async ({ page }) => {
+    const c = await openHarness(page, { width: 360 });
+    await wrapInFormCell(page, { label: 'top' });
+    await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
+    await expect(c.entry).toHaveAttribute('data-labels', 'reenter-only');
+    await expect(c.entry).toHaveAttribute('data-label-position', 'above');
+    await expect(c.labels).toHaveText(['Re-enter SIN']);
+    await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-top.png` });
+  });
+
+  test('a hidden form label brings both labels back, placed like the neighbouring cells', async ({ page }) => {
+    const c = await openHarness(page, { width: 560 });
+    await wrapInFormCell(page, { label: 'hidden', sibling: 'left' });
+    await expect(c.entry).toHaveAttribute('data-form-label', 'hidden');
+    await expect(c.entry).toHaveAttribute('data-labels', 'both');
+    await expect(c.entry).toHaveAttribute('data-label-position', 'inline');
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
+    await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-hidden.png` });
+
+    await openHarness(page, { width: 360 });
+    await wrapInFormCell(page, { label: 'hidden', sibling: 'top' });
+    await expect(c.entry).toHaveAttribute('data-labels', 'both');
+    await expect(c.entry).toHaveAttribute('data-label-position', 'above');
+  });
+
+  test('typing inside a form cell stores the value, without console errors', async ({ page }) => {
+    // A regression test: the first version re-rendered without end once a
+    // form label was found, and the page hung on the first Enter.
+    const messages = collectConsole(page);
+    for (const [label, width] of [['left', 560], ['top', 360]]) {
+      const c = await openHarness(page, { width, validation: 'sin', revealMs: 60_000 });
+      await wrapInFormCell(page, { label });
+      await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
+      await c.first.click();
+      await page.keyboard.type(GOOD_SIN);
+      await page.keyboard.press('Enter');
+      await page.keyboard.type(GOOD_SIN);
+      await expect(c.entry).toHaveAttribute('data-state', 'stored');
+      expect(messages).toEqual([]);
+    }
+  });
+
+  test('the labels and their position can be forced', async ({ page }) => {
+    const c = await openHarness(page, { labels: 'reenterOnly', labelPosition: 'above' });
+    await expect(c.labels).toHaveText(['Re-enter SIN']);
+    await expect(c.entry).toHaveAttribute('data-label-position', 'above');
+
+    await openHarness(page, { width: 560, labels: 'both', labelPosition: 'inline' });
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
+    await expect(c.entry).toHaveAttribute('data-label-position', 'inline');
+    await shot(page, 'labels-both-inline');
+
+    // Forced settings win over what the form shows.
+    await openHarness(page, { width: 560, labels: 'both', labelPosition: 'above' });
+    await wrapInFormCell(page, { label: 'left' });
+    await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
+    await expect(c.entry).toHaveAttribute('data-label-position', 'above');
   });
 });

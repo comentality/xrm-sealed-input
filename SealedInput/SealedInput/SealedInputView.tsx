@@ -1,6 +1,9 @@
 import * as React from "react";
-import { Button, Field, Input, Text, makeStyles, tokens } from "@fluentui/react-components";
+import { Button, Field, Input, Text, makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
 import {
+  FormLabel,
+  LabelMode,
+  LabelPosition,
   Layout,
   Rules,
   STORED_DOTS,
@@ -8,10 +11,12 @@ import {
   backspace,
   canCommit,
   display,
+  planLabels,
   sideBySide,
   validateConfirm,
   validateEntry,
 } from "./sealedInput";
+import { readFormLabel } from "./formLabel";
 
 export interface ISealedInputViewProps {
   /** Bound value as the platform holds it. Empty means nothing stored. */
@@ -24,6 +29,10 @@ export interface ISealedInputViewProps {
   layout: Layout;
   /** The column's name; the fields are labelled "<label>" and "Re-enter <label>". */
   label: string;
+  /** Which fields get a label. Auto: only Re-enter when the form shows the cell label, both when it hides it. */
+  labelMode: LabelMode;
+  /** Where labels sit. Auto follows the section's label position. */
+  labelPosition: LabelPosition;
   /** Empty string clears; null is never sent because the platform reads it as "no change". */
   onCommit: (value: string) => void;
 }
@@ -34,6 +43,11 @@ const useStyles = makeStyles({
   fields: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS },
   fieldsSide: { flexDirection: "row", alignItems: "flex-start", columnGap: tokens.spacingHorizontalM },
   field: { flex: "1 1 0", minWidth: 0 },
+  // Fluent's horizontal Field reserves a third of the width for the label
+  // (and pads a label-less field by as much); ours is a word or two, and the
+  // measured width goes in as an inline style once known.
+  fieldInline: { gridTemplateColumns: "auto 1fr", paddingLeft: 0 },
+  labelText: { whiteSpace: "nowrap" },
   hint: { color: tokens.colorNeutralForeground3 },
   input: { width: "100%" },
 });
@@ -58,25 +72,62 @@ type Slot = "first" | "second";
  * entry, Backspace clears the column. The value is written when both entries
  * agree; the fields then go back to the stored dots.
  */
-export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, onCommit }) => {
+export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, labelMode, labelPosition, onCommit }) => {
   const styles = useStyles();
   const hasStored = stored !== "";
 
-  // Measure our own width; the form cell, not the host API, decides the layout.
+  // Measure our own width and read the form's cell label around us; the form
+  // cell, not the host API, decides the layout and the labels. Both are
+  // re-read whenever our size changes, which is when the form relaid out.
   const rootRef = React.useRef<HTMLDivElement>(null);
   const [width, setWidth] = React.useState(0);
+  const [formLabel, setFormLabel] = React.useState<FormLabel | null>(null);
   React.useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    setWidth(el.getBoundingClientRect().width);
+    const read = () => {
+      setWidth(el.getBoundingClientRect().width);
+      // Same answer, same object: a fresh object on every read would re-render
+      // without end, since this runs again after each render.
+      const next = readFormLabel(el);
+      setFormLabel((prev) => (prev?.shown === next?.shown && prev?.position === next?.position && (prev === null) === (next === null) ? prev : next));
+    };
+    read();
     if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) setWidth(e.contentRect.width);
-    });
+    const ro = new ResizeObserver(read);
     ro.observe(el);
     return () => ro.disconnect();
-  });
+  }, []);
   const side = sideBySide(layout, width);
+  const labels = planLabels(labelMode, labelPosition, label, formLabel);
+  // Classes are combined with mergeClasses, never by string: two Griffel
+  // sequences side by side leave the cascade to stylesheet insertion order,
+  // which differs between page loads in the form host.
+  const fieldClass = mergeClasses(styles.field, labels.inline && styles.fieldInline);
+  const orientation = labels.inline ? "horizontal" : "vertical";
+
+  // Inline labels: the two fields are separate grids, so they are given the
+  // same label column, as wide as the wider label text plus Fluent's label
+  // margin. Stacked, a label-less first field is indented by the same amount
+  // so the two inputs line up; side by side it takes its whole half.
+  const firstLabelRef = React.useRef<HTMLSpanElement>(null);
+  const secondLabelRef = React.useRef<HTMLSpanElement>(null);
+  const [labelCol, setLabelCol] = React.useState(0);
+  React.useLayoutEffect(() => {
+    if (!labels.inline) return;
+    const widths = [firstLabelRef.current, secondLabelRef.current].map((el) => el?.getBoundingClientRect().width ?? 0);
+    const col = Math.ceil(Math.max(...widths)) + 12; // spacingHorizontalM
+    if (col !== labelCol) setLabelCol(col);
+  }, [labels.inline, labels.first, labels.second, side]);
+  const fieldStyle = labels.inline && labelCol > 0 ? { gridTemplateColumns: `${labelCol}px 1fr` } : undefined;
+  const firstFieldStyle = labels.inline && labels.first === null && !side && labelCol > 0 ? { paddingLeft: `${labelCol}px` } : fieldStyle;
+  // Fluent's Label lays its children out as a list, hence the key.
+  const labelNode = (text: string | null, ref: React.RefObject<HTMLSpanElement>) =>
+    text === null ? undefined : (
+      <span key="text" ref={ref} className={styles.labelText}>
+        {text}
+      </span>
+    );
 
   const [first, setFirst] = React.useState("");
   const [second, setSecond] = React.useState("");
@@ -209,9 +260,25 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
       : "Type it twice. Pasting is off.";
 
   return (
-    <div className={styles.root} data-testid="sealed-entry" data-layout={side ? "side-by-side" : "stacked"} data-state={state} ref={rootRef}>
-      <div className={side ? `${styles.fields} ${styles.fieldsSide}` : styles.fields}>
-        <Field label={label} className={styles.field} validationState={firstError ? "error" : "none"} validationMessage={firstError ?? undefined}>
+    <div
+      className={styles.root}
+      data-testid="sealed-entry"
+      data-layout={side ? "side-by-side" : "stacked"}
+      data-state={state}
+      data-labels={labels.first === null ? "reenter-only" : "both"}
+      data-label-position={labels.inline ? "inline" : "above"}
+      data-form-label={formLabel === null ? "none" : formLabel.shown ? "shown" : "hidden"}
+      ref={rootRef}
+    >
+      <div className={mergeClasses(styles.fields, side && styles.fieldsSide)}>
+        <Field
+          label={labelNode(labels.first, firstLabelRef)}
+          orientation={orientation}
+          className={fieldClass}
+          style={firstFieldStyle}
+          validationState={firstError ? "error" : "none"}
+          validationMessage={firstError ?? undefined}
+        >
           <Input
             ref={firstRef}
             type="text"
@@ -229,7 +296,14 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
             {...blocked}
           />
         </Field>
-        <Field label={`Re-enter ${label}`} className={styles.field} validationState={secondError ? "error" : "none"} validationMessage={secondError ?? undefined}>
+        <Field
+          label={labelNode(labels.second, secondLabelRef)}
+          orientation={orientation}
+          className={fieldClass}
+          style={fieldStyle}
+          validationState={secondError ? "error" : "none"}
+          validationMessage={secondError ?? undefined}
+        >
           <Input
             ref={secondRef}
             type="text"

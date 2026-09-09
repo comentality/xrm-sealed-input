@@ -99,3 +99,53 @@ export function validateConfirm(first: string, second: string): string | null {
 export function canCommit(first: string, second: string, rules: Rules): boolean {
   return first.length > 0 && first === second && validateEntry(first, rules) === null;
 }
+
+// Labels. The form usually draws the cell label itself (left of the control
+// or above it, per the section's label position), so the control's own
+// labels should not repeat it. Auto follows the form; the others override.
+export type LabelMode = "auto" | "both" | "reenterOnly";
+export type LabelPosition = "auto" | "above" | "inline";
+export type Placement = "above" | "inline";
+
+/** What the control found out about the form's own label for this cell. */
+export interface FormLabel {
+  /** The form draws a visible label for this cell. */
+  shown: boolean;
+  /** Where the section puts cell labels; null when it could not be told. */
+  position: Placement | null;
+}
+
+export interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** Where a form label sits relative to its control: beside it, or above it. */
+export function labelPlacement(label: Box, control: Box): Placement {
+  return label.right <= control.left + 1 ? "inline" : "above";
+}
+
+export interface LabelPlan {
+  /** Label text on the first field, or null for none. */
+  first: string | null;
+  /** Label text on the second field. */
+  second: string;
+  /** Labels sit beside the fields rather than above them. */
+  inline: boolean;
+}
+
+/**
+ * The labels to draw. `form` is what the DOM said, or null when the control
+ * is not inside a form cell it recognises (the test harness); then the form
+ * label counts as hidden and the position as above.
+ */
+export function planLabels(mode: LabelMode, position: LabelPosition, label: string, form: FormLabel | null): LabelPlan {
+  const shown = form?.shown ?? false;
+  const both = mode === "both" || (mode === "auto" && !shown);
+  const inline = position === "inline" || (position === "auto" && form?.position === "inline");
+  // Beside the field, with the form already naming the column, "Re-enter" is enough.
+  const second = both || !inline ? `Re-enter ${label}` : "Re-enter";
+  return { first: both ? label : null, second, inline };
+}

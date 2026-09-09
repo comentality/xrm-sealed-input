@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
-  <control namespace="KK" constructor="SealedInput" version="0.2.0" display-name-key="Sealed Input" description-key="Entry field for sensitive numbers such as bank accounts and SIN. Typed characters are masked, the clipboard is blocked, and the value must be entered twice before it is stored." control-type="virtual" >
+  <control namespace="KK" constructor="SealedInput" version="0.3.1" display-name-key="Sealed Input" description-key="Entry field for sensitive numbers such as bank accounts and SIN. Typed characters are masked, the clipboard is blocked, and the value must be entered twice before it is stored." control-type="virtual" >
     <external-service-usage enabled="false">
     </external-service-usage>
     <property name="value" display-name-key="Value" description-key="Text column that receives the entered value" of-type="SingleLine.Text" usage="bound" required="true" />
     <property name="label" display-name-key="Label" description-key="Word used to label the two fields, as in SIN and Re-enter SIN. Defaults to the column display name." of-type="SingleLine.Text" usage="input" required="false" />
+    <property name="labels" display-name-key="Labels" description-key="Which of the two fields carry a label. Auto shows only Re-enter when the form displays the column label for this cell, and both labels when it hides it." of-type="Enum" usage="input" required="false" default-value="auto">
+      <value name="auto" display-name-key="Auto (follow the form)">auto</value>
+      <value name="both" display-name-key="Both fields">both</value>
+      <value name="reenterOnly" display-name-key="Re-enter only">reenterOnly</value>
+    </property>
+    <property name="labelPosition" display-name-key="Label position" description-key="Where the labels sit. Auto follows the section: beside the fields when the section puts labels on the left, above them when it puts labels on top." of-type="Enum" usage="input" required="false" default-value="auto">
+      <value name="auto" display-name-key="Auto (follow the section)">auto</value>
+      <value name="above" display-name-key="Above the field">above</value>
+      <value name="inline" display-name-key="Beside the field">inline</value>
+    </property>
     <property name="characters" display-name-key="Characters" description-key="Which characters may be typed. Digits only is the default." of-type="Enum" usage="input" required="false" default-value="digits">
       <value name="digits" display-name-key="Digits only">digits</value>
       <value name="any" display-name-key="Any character">any</value>

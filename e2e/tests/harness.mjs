@@ -39,12 +39,14 @@ async function setSelect(locator, value) {
  * Opens the harness and configures the control. The harness seeds the bound
  * value with "val", so an empty string is applied unless told otherwise.
  */
-export async function openHarness(page, { value = '', characters, validation, maxLength, revealMs, layout, width, label } = {}) {
+export async function openHarness(page, { value = '', characters, validation, maxLength, revealMs, layout, width, label, labels, labelPosition } = {}) {
   if (width !== undefined) await page.setViewportSize({ width: Math.max(700, width + 60), height: 600 });
   await page.goto('/', { waitUntil: 'load' });
   await page.locator('.control-container [data-testid^="sealed-"]').first().waitFor({ timeout: 30_000 });
   if (width !== undefined) await setWidth(page, width);
   if (layout !== undefined) await setSelect(propertyRow(page, 'layout').locator('select'), layout);
+  if (labels !== undefined) await setSelect(propertyRow(page, 'labels').locator('select'), labels);
+  if (labelPosition !== undefined) await setSelect(propertyRow(page, 'labelPosition').locator('select'), labelPosition);
   // The harness seeds text inputs with "val"; label the fields SIN unless told otherwise.
   await setField(propertyRow(page, 'label').locator('input[type=text]'), label ?? 'SIN');
   if (characters !== undefined) await setSelect(propertyRow(page, 'characters').locator('select'), characters);
@@ -94,9 +96,58 @@ export function collectConsole(page) {
   page.on('console', (m) => {
     if (m.type() !== 'error' && m.type() !== 'warning') return;
     const text = m.text();
-    if (text.includes('`NaN` is an invalid value') || text.includes('Failed to load resource')) return;
+    // The panel's number boxes also warn about switching from uncontrolled to controlled when set.
+    if (text.includes('`NaN` is an invalid value') || text.includes('Failed to load resource') || text.includes('uncontrolled input of type')) return;
     messages.push(`${m.type()}: ${text}`);
   });
   page.on('pageerror', (e) => messages.push(`pageerror: ${String(e)}`));
   return messages;
+}
+
+/**
+ * Puts the control inside a copy of the DOM a Unified Interface form cell
+ * has: a container whose data-id ends in FieldSectionItemContainer holding a
+ * <label id="...-field-label"> and the control area. `label` is where the
+ * form puts the cell label: 'left', 'top', or 'hidden' (rendered display:none,
+ * with a sibling cell in the same section whose label is at `sibling`). The
+ * control re-reads the DOM when its size changes, so the width is nudged.
+ */
+export async function wrapInFormCell(page, { label = 'left', sibling = 'left', text = 'SIN' } = {}) {
+  await page.evaluate(({ label, sibling, text }) => {
+    const control = document.querySelector('.control-container');
+    const parent = control.parentElement;
+    const cell = (id, where, labelText, area) => {
+      const c = document.createElement('div');
+      c.setAttribute('data-id', `${id}-FieldSectionItemContainer`);
+      c.style.display = 'flex';
+      c.style.flexDirection = where === 'top' ? 'column' : 'row';
+      c.style.alignItems = 'flex-start';
+      c.style.gap = '8px';
+      const wrap = document.createElement('div');
+      const l = document.createElement('label');
+      l.id = `${id}-field-label`;
+      l.textContent = labelText;
+      l.style.display = where === 'hidden' ? 'none' : 'block';
+      l.style.width = where === 'top' ? 'auto' : '120px';
+      wrap.appendChild(l);
+      c.appendChild(wrap);
+      const a = document.createElement('div');
+      a.style.flex = '1 1 0';
+      a.style.minWidth = '0';
+      a.appendChild(area);
+      c.appendChild(a);
+      return c;
+    };
+    const section = document.createElement('section');
+    section.setAttribute('data-testid', 'fake-section');
+    const stock = document.createElement('div');
+    stock.style.height = '32px';
+    stock.style.background = '#eee';
+    section.appendChild(cell('sibling', sibling, 'First Name', stock));
+    section.appendChild(cell('sealed', label, text, control));
+    parent.appendChild(section);
+    window.__fakeSection = section;
+  }, { label, sibling, text });
+  // Nudge the size so the ResizeObserver fires and the control re-reads the DOM.
+  await page.evaluate(() => { document.querySelector('.control-container').style.paddingRight = '1px'; });
 }

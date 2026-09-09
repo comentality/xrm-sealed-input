@@ -49,11 +49,14 @@ export async function setupForm(page) {
       .join('');
   const sinParams = `<value>${SIN}</value><characters static="true" type="Enum">digits</characters><validation static="true" type="Enum">sin</validation><maxLength static="true" type="Whole.None">0</maxLength><revealMs static="true" type="Whole.None">1000</revealMs>`;
   const bankParams = `<value>${BANK}</value><characters static="true" type="Enum">digits</characters><validation static="true" type="Enum">none</validation><maxLength static="true" type="Whole.None">12</maxLength><revealMs static="true" type="Whole.None">1000</revealMs>`;
-  const cell = (id, label, control) =>
-    `<row><cell id="${id}" showlabel="true" locklevel="0"><labels><label description="${label}" languagecode="1033" /></labels>${control}</cell></row>`;
+  const cell = (id, label, control, showlabel = true) =>
+    `<row><cell id="${id}" showlabel="${showlabel}" locklevel="0"><labels><label description="${label}" languagecode="1033" /></labels>${control}</cell></row>`;
   // Two tab columns: a wide one (side-by-side layout) and a narrow one that
   // shows the SIN column again (stacked layout), so one screenshot has both.
+  // The wide column also shows SIN with the cell label hidden, for the
+  // control's label handling.
   const sinNarrowCtrlId = '{5ea1ed00-aaaa-4bbb-8ccc-000000000023}';
+  const sinNoLabelCtrlId = '{5ea1ed00-aaaa-4bbb-8ccc-000000000024}';
   const formxml =
     `<form showImage="true">` +
     `<tabs><tab name="general" id="{5ea1ed00-aaaa-4bbb-8ccc-000000000060}" IsUserDefined="0" verticallayout="true" showlabel="true" expanded="true" locklevel="0">` +
@@ -65,6 +68,7 @@ export async function setupForm(page) {
     cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000041}', 'Last Name', `<control id="lastname" classid="${TEXT_CLASSID}" datafieldname="lastname" disabled="false" />`) +
     cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000042}', 'SIN', `<control id="${sinCtrlId}" classid="${TEXT_CLASSID}" datafieldname="${SIN}" disabled="false" uniqueid="${sinCtrlId}" />`) +
     cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000043}', 'Bank account', `<control id="${bankCtrlId}" classid="${TEXT_CLASSID}" datafieldname="${BANK}" disabled="false" uniqueid="${bankCtrlId}" />`) +
+    cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000045}', 'SIN (label hidden)', `<control id="${sinNoLabelCtrlId}" classid="${TEXT_CLASSID}" datafieldname="${SIN}" disabled="false" uniqueid="${sinNoLabelCtrlId}" />`, false) +
     `</rows></section></sections></column>` +
     `<column width="34%"><sections>` +
     `<section name="narrow" id="{5ea1ed00-aaaa-4bbb-8ccc-000000000062}" showlabel="true" showbar="false" IsUserDefined="0" layout="varwidth" columns="1" labelwidth="115" celllabelposition="Top" locklevel="0">` +
@@ -76,6 +80,7 @@ export async function setupForm(page) {
     `<controlDescription forControl="${sinCtrlId}">${sealed(sinParams)}</controlDescription>` +
     `<controlDescription forControl="${bankCtrlId}">${sealed(bankParams)}</controlDescription>` +
     `<controlDescription forControl="${sinNarrowCtrlId}">${sealed(sinParams)}</controlDescription>` +
+    `<controlDescription forControl="${sinNoLabelCtrlId}">${sealed(sinParams)}</controlDescription>` +
     `</controlDescriptions>` +
     `</form>`;
 
