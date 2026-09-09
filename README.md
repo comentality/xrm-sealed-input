@@ -30,6 +30,9 @@ Dataverse column security's job; the manual says so.
   and dispatched paste, drop, cut, copy and context-menu events, mismatch,
   match and store, Replace, Cancel, Clear, and the SIN checksum. `npm run docs`
   copies the screenshots into `docs/img`.
+- `e2e/mock-form.mjs`: wraps the live control in a static Contact form laid
+  out like a model-driven app and screenshots it (`npm run mock`). A mock-up,
+  for showing the look before the control is in an environment.
 - `docs/usage.md`: the manual.
 
 Not built: a Dataverse-side run (push the control, put it on a form, drive the

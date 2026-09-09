@@ -6,6 +6,21 @@ turns into a dot as soon as the next one is typed, and the value is only
 stored once it has been entered twice the same way. Made for bank account
 numbers and Social Insurance Numbers.
 
+## On a form
+
+A mock-up of a Contact form with the control on two columns: SIN mid-entry,
+bank account already stored. The control is the real build driven with real
+keystrokes; the form around it is static HTML laid out like a model-driven
+app. It is not a screenshot of Dataverse.
+
+![Contact form mock-up, SIN being typed, bank account stored](img/form-mock-typing.png)
+
+| Empty, waiting for entry | Both stored |
+|---|---|
+| ![SIN empty](img/form-mock-empty-section.png) | ![SIN and bank account stored](img/form-mock-stored-section.png) |
+
+Rebuild it with `npm run mock` in `e2e/`.
+
 ## What the user sees
 
 The column starts empty. Two fields, one hint.
