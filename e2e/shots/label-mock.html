@@ -1,0 +1,192 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Sealed Input: label position mock-ups</title><style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #f5f5f5; font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system, sans-serif; font-size: 14px; color: #242424; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .lead { color: #616161; margin: 0 0 20px; font-size: 13px; }
+  .ctx { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+  .ctx h2 { font-size: 15px; margin: 0 0 2px; }
+  .ctx .note { color: #616161; font-size: 13px; margin: 0 0 14px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-start; }
+  .mini { }
+  .opt { font-size: 12px; font-weight: 600; color: #0f6cbd; margin-bottom: 6px; }
+  .sec { border: 1px solid #ededed; border-radius: 4px; padding: 6px 16px 10px; background: #fff; }
+  .row { display: grid; align-items: start; padding: 8px 0; }
+  .row.left { grid-template-columns: 184px 1fr; }
+  .row.top { grid-template-columns: 1fr; row-gap: 6px; }
+  .row.nolabel { grid-template-columns: 1fr; }
+  .flabel { color: #242424; padding-top: 6px; line-height: 20px; }
+  .row.top .flabel { padding-top: 0; }
+  .val { min-width: 0; }
+  .in { height: 32px; background: #f0f0f0; border-radius: 4px; border-bottom: 1px solid #c7c7c7; padding: 0 10px; line-height: 32px; color: #242424; letter-spacing: .5px; }
+  .in.focus { border-bottom: 2px solid #0f6cbd; }
+  .in .ph { color: #707070; letter-spacing: 0; }
+  .ctl { display: flex; gap: 8px; }
+  .ctl.side { flex-direction: row; align-items: flex-start; gap: 12px; }
+  .ctl.stack { flex-direction: column; }
+  .fld { flex: 1 1 0; min-width: 0; }
+  .lbl { line-height: 20px; padding-bottom: 2px; color: #242424; }
+  .inrow { display: flex; align-items: center; gap: 8px; }
+  .inrow .in { flex: 1 1 0; }
+  .inl { color: #424242; white-space: nowrap; }
+  .cap { font-size: 12px; color: #616161; line-height: 16px; padding-top: 2px; }
+  .hint { font-size: 12px; color: #616161; line-height: 16px; margin-top: 6px; }
+</style></head><body>
+  <h1>Sealed Input: where the control's own labels go</h1>
+  <p class="lead">Static mock-up, 2026-09-09. Each mini form is a section with a stock First Name row, the SIN cell empty, the Bank account cell stored, and a stock row after.</p>
+  
+    <div class="ctx" id="left-wide">
+      <h2>Section label position Left, wide cell (side by side). The wide column of the e2e form.</h2>
+      <p class="note">The form label "SIN" sits left of the control. "Now" says SIN twice and drops the inputs a line below First Name.</p>
+      <div class="grid">
+    <div class="mini" style="width:740px">
+      <div class="opt">Now: label above each field</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl side"><div class="fld"><div class="lbl">SIN</div><div class="inrow"><div class="in"></div></div></div><div class="fld"><div class="lbl">Re-enter SIN</div><div class="inrow"><div class="in"></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl side"><div class="fld"><div class="lbl">Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="lbl">Re-enter Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:740px">
+      <div class="opt">Re-enter only: no first label, "Re-enter" above the second</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl side"><div class="fld"><div class="lbl">&nbsp;</div><div class="inrow"><div class="in"></div></div></div><div class="fld"><div class="lbl">Re-enter SIN</div><div class="inrow"><div class="in"></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl side"><div class="fld"><div class="lbl">&nbsp;</div><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="lbl">Re-enter Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:740px">
+      <div class="opt">Inline: "Re-enter" beside the second field</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl side"><div class="fld"><div class="inrow"><div class="in"></div></div></div><div class="fld"><div class="inrow"><span class="inl">Re-enter</span><div class="in"></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl side"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="inrow"><span class="inl">Re-enter</span><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:740px">
+      <div class="opt">Captions below: "Enter" / "Re-enter" under each field</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl side"><div class="fld"><div class="inrow"><div class="in"></div></div><div class="cap">Enter</div></div><div class="fld"><div class="inrow"><div class="in"></div></div><div class="cap">Re-enter</div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl side"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div><div class="cap">Enter</div></div><div class="fld"><div class="inrow"><div class="in">••••••••</div></div><div class="cap">Re-enter</div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:740px">
+      <div class="opt">Placeholders: "Enter SIN" / "Re-enter SIN", no labels</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl side"><div class="fld"><div class="inrow"><div class="in"><span class="ph">Enter SIN</span></div></div></div><div class="fld"><div class="inrow"><div class="in"><span class="ph">Re-enter SIN</span></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl side"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div></div>
+    </div>
+    <div class="ctx" id="left-narrow">
+      <h2>Section label position Left, narrow cell (stacked). A three-column section, or a phone.</h2>
+      <p class="note">Same form label, but the two fields stack.</p>
+      <div class="grid">
+    <div class="mini" style="width:440px">
+      <div class="opt">Now: label above each field</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl stack"><div class="fld"><div class="lbl">SIN</div><div class="inrow"><div class="in"></div></div></div><div class="fld"><div class="lbl">Re-enter SIN</div><div class="inrow"><div class="in"></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl stack"><div class="fld"><div class="lbl">Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="lbl">Re-enter Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:440px">
+      <div class="opt">Re-enter only: no first label, "Re-enter" above the second</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in"></div></div></div><div class="fld"><div class="lbl">Re-enter SIN</div><div class="inrow"><div class="in"></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="lbl">Re-enter Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:440px">
+      <div class="opt">Captions below: "Enter" / "Re-enter" under each field</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in"></div></div><div class="cap">Enter</div></div><div class="fld"><div class="inrow"><div class="in"></div></div><div class="cap">Re-enter</div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div><div class="cap">Enter</div></div><div class="fld"><div class="inrow"><div class="in">••••••••</div></div><div class="cap">Re-enter</div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:440px">
+      <div class="opt">Placeholders: "Enter SIN" / "Re-enter SIN", no labels</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row left"><div class="flabel">SIN</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in"><span class="ph">Enter SIN</span></div></div></div><div class="fld"><div class="inrow"><div class="in"><span class="ph">Re-enter SIN</span></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row left"><div class="flabel">Bank account</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div></div>
+    </div>
+    <div class="ctx" id="top-narrow">
+      <h2>Section label position Top, narrow cell (stacked). The narrow column of the e2e form.</h2>
+      <p class="note">The form label is directly above the control, so "Now" reads SIN, SIN, field.</p>
+      <div class="grid">
+    <div class="mini" style="width:365px">
+      <div class="opt">Now: label above each field</div>
+      <div class="sec">
+        <div class="row top"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row top"><div class="flabel">SIN</div><div class="val"><div class="ctl stack"><div class="fld"><div class="lbl">SIN</div><div class="inrow"><div class="in"></div></div></div><div class="fld"><div class="lbl">Re-enter SIN</div><div class="inrow"><div class="in"></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row top"><div class="flabel">Bank account</div><div class="val"><div class="ctl stack"><div class="fld"><div class="lbl">Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="lbl">Re-enter Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row top"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:365px">
+      <div class="opt">Re-enter only: no first label, "Re-enter" above the second</div>
+      <div class="sec">
+        <div class="row top"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row top"><div class="flabel">SIN</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in"></div></div></div><div class="fld"><div class="lbl">Re-enter SIN</div><div class="inrow"><div class="in"></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row top"><div class="flabel">Bank account</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="lbl">Re-enter Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row top"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:365px">
+      <div class="opt">Captions below: "Enter" / "Re-enter" under each field</div>
+      <div class="sec">
+        <div class="row top"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row top"><div class="flabel">SIN</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in"></div></div><div class="cap">Enter</div></div><div class="fld"><div class="inrow"><div class="in"></div></div><div class="cap">Re-enter</div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row top"><div class="flabel">Bank account</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div><div class="cap">Enter</div></div><div class="fld"><div class="inrow"><div class="in">••••••••</div></div><div class="cap">Re-enter</div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row top"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:365px">
+      <div class="opt">Placeholders: "Enter SIN" / "Re-enter SIN", no labels</div>
+      <div class="sec">
+        <div class="row top"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row top"><div class="flabel">SIN</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in"><span class="ph">Enter SIN</span></div></div></div><div class="fld"><div class="inrow"><div class="in"><span class="ph">Re-enter SIN</span></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row top"><div class="flabel">Bank account</div><div class="val"><div class="ctl stack"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row top"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div></div>
+    </div>
+    <div class="ctx" id="hidden">
+      <h2>Cell label hidden (showlabel=false), wide cell.</h2>
+      <p class="note">Nothing else names the column, so the control must label its first field. "Now" is right here; the others lose the name.</p>
+      <div class="grid">
+    <div class="mini" style="width:560px">
+      <div class="opt">Now: label above each field</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row nolabel"><div class="val"><div class="ctl side"><div class="fld"><div class="lbl">SIN</div><div class="inrow"><div class="in"></div></div></div><div class="fld"><div class="lbl">Re-enter SIN</div><div class="inrow"><div class="in"></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row nolabel"><div class="val"><div class="ctl side"><div class="fld"><div class="lbl">Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="lbl">Re-enter Bank account</div><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div>
+    <div class="mini" style="width:560px">
+      <div class="opt">Placeholders: "Enter SIN" / "Re-enter SIN", no labels</div>
+      <div class="sec">
+        <div class="row left"><div class="flabel">First Name</div><div class="val"><div class="in">Jane</div></div></div>
+        <div class="row nolabel"><div class="val"><div class="ctl side"><div class="fld"><div class="inrow"><div class="in"><span class="ph">Enter SIN</span></div></div></div><div class="fld"><div class="inrow"><div class="in"><span class="ph">Re-enter SIN</span></div></div></div></div><div class="hint">Type it twice. Pasting is off.</div></div></div>
+        <div class="row nolabel"><div class="val"><div class="ctl side"><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div><div class="fld"><div class="inrow"><div class="in">••••••••</div></div></div></div><div class="hint">Stored. Type to replace, Backspace to clear.</div></div></div>
+        <div class="row left"><div class="flabel">Payee since</div><div class="val"><div class="in">2026-09-01</div></div></div>
+      </div>
+    </div></div>
+    </div>
+</body></html>
