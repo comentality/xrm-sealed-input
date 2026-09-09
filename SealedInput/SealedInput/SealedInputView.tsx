@@ -2,8 +2,6 @@ import * as React from "react";
 import { Button, Field, Input, Text, makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
 import {
   FormLabel,
-  LabelMode,
-  LabelPosition,
   Layout,
   Rules,
   STORED_DOTS,
@@ -27,12 +25,8 @@ export interface ISealedInputViewProps {
   revealMs: number;
   /** Auto switches to side by side at 480px of measured width. */
   layout: Layout;
-  /** The column's name; the fields are labelled "<label>" and "Re-enter <label>". */
+  /** The column's display name; the fields are labelled "<label>" and "Re-enter <label>". */
   label: string;
-  /** Which fields get a label. Auto: only Re-enter when the form shows the cell label, both when it hides it. */
-  labelMode: LabelMode;
-  /** Where labels sit. Auto follows the section's label position. */
-  labelPosition: LabelPosition;
   /** Empty string clears; null is never sent because the platform reads it as "no change". */
   onCommit: (value: string) => void;
 }
@@ -72,7 +66,7 @@ type Slot = "first" | "second";
  * entry, Backspace clears the column. The value is written when both entries
  * agree; the fields then go back to the stored dots.
  */
-export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, labelMode, labelPosition, onCommit }) => {
+export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, onCommit }) => {
   const styles = useStyles();
   const hasStored = stored !== "";
 
@@ -99,7 +93,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
     return () => ro.disconnect();
   }, []);
   const side = sideBySide(layout, width);
-  const labels = planLabels(labelMode, labelPosition, label, formLabel);
+  const labels = planLabels(label, formLabel);
   // Classes are combined with mergeClasses, never by string: two Griffel
   // sequences side by side leave the cascade to stylesheet insertion order,
   // which differs between page loads in the form host.

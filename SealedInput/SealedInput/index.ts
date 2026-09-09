@@ -1,6 +1,6 @@
 import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import { SealedInputView, ISealedInputViewProps } from "./SealedInputView";
-import { Characters, LabelMode, LabelPosition, Layout, Rules, Validation } from "./sealedInput";
+import { Characters, Layout, Rules, Validation } from "./sealedInput";
 import * as React from "react";
 import { FluentProvider, Theme, webLightTheme } from "@fluentui/react-components";
 
@@ -29,9 +29,8 @@ export class SealedInput implements ComponentFramework.ReactControl<IInputs, IOu
       rules,
       revealMs: p.revealMs?.raw ?? 1000,
       layout: (p.layout?.raw as Layout | null) ?? "auto",
-      label: (p.label?.raw ?? "").trim() || (p.value.attributes?.DisplayName ?? "").trim() || "Value",
-      labelMode: (p.labels?.raw as LabelMode | null) ?? "auto",
-      labelPosition: (p.labelPosition?.raw as LabelPosition | null) ?? "auto",
+      // The fields are named after the column, nothing else: no override.
+      label: (p.value.attributes?.DisplayName ?? "").trim() || "Value",
       onCommit: (v) => {
         this.value = v; // "" clears the column; undefined would mean "unchanged"
         this.notifyOutputChanged();

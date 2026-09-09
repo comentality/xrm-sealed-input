@@ -70,8 +70,8 @@ Each of these was an open question in the first README.
   cannot block save (standard controls have no field notification API);
   documented as a limitation.
 - **Shape (changed 2026-09-09 on the user's call).** Always two fields,
-  labelled `<column>` and `Re-enter <column>` (a `label` property overrides the
-  column display name). No collapsed row, no Replace or Clear buttons. A stored
+  labelled `<column>` and `Re-enter <column>` after the column's display name.
+  No collapsed row, no Replace or Clear buttons. A stored
   value shows a fixed eight dots in both fields; the first keystroke in either
   field starts a fresh entry there, Backspace over the dots clears the column,
   Start over returns to the dots. Clear writes `""`; returning
@@ -90,9 +90,13 @@ Each of these was an open question in the first README.
   Now: when the form shows the cell label, only the second field is labelled,
   "Re-enter", placed where the section places labels (beside the field for a
   Left section, above for a Top one); when the cell label is hidden, both
-  fields are labelled, placed like the neighbouring cells. Two properties,
-  Labels and Label position, default to Auto and can force either. Placeholder
-  text was mocked up and rejected. Auto is DOM sniffing: the control sits in a
+  fields are labelled, placed like the neighbouring cells. Placeholder
+  text was mocked up and rejected. Three properties (a label text override,
+  Labels and Label position, the last two with Auto defaults) shipped briefly
+  and were removed the same day on the user's call: the form decides, nothing
+  is configurable, and the fields are always named after the column. The DOM
+  reading has no manual escape hatch; if it misreads, the fix is a new
+  version. Reading the form is DOM sniffing: the control sits in a
   container whose data-id ends in FieldSectionItemContainer, with the cell
   label as a `<label>` whose id ends in `-field-label`; left vs above is
   decided from bounding boxes, and a hidden label borrows the position from a
@@ -104,8 +108,9 @@ Each of these was an open question in the first README.
 
 ## Gotchas met
 
-- The harness seeds every text input property with `val`, including the new
-  `label`, so screenshots label the fields `val` unless the test sets it.
+- The harness names the bound column `value's Display Name`, which is what the
+  fields would be labelled in every harness screenshot. `e2e/harness-server.mjs`
+  serves `harness.js` with that one template swapped for `SIN`.
 - Fluent 9 tokens only resolve inside a `FluentProvider`. The form host supplies
   one; the harness does not, and the control rendered borderless and centred.
   The control now wraps itself in a provider using

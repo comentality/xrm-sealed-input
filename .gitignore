@@ -17,3 +17,4 @@ e2e/test-results/
 e2e/report/
 e2e/shots/label-dom.json
 e2e/shots/field-styles.json
+e2e/shots/label-matrix.html

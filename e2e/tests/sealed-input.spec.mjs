@@ -16,11 +16,12 @@ test.describe('entry', () => {
     await shot(page, 'entry-empty');
   });
 
-  test('the fields carry the column name and Re-enter it', async ({ page }) => {
-    const c = await openHarness(page, { label: 'Bank account' });
-    await expect(c.labels).toHaveText(['Bank account', 'Re-enter Bank account']);
-    await expect(c.first).toHaveAttribute('aria-label', 'Bank account');
-    await expect(c.second).toHaveAttribute('aria-label', 'Re-enter Bank account');
+  test('the fields carry the column display name and Re-enter it', async ({ page }) => {
+    // The harness server names the bound column SIN (see harness-server.mjs).
+    const c = await openHarness(page);
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
+    await expect(c.first).toHaveAttribute('aria-label', 'SIN');
+    await expect(c.second).toHaveAttribute('aria-label', 'Re-enter SIN');
   });
 
   test('earlier characters are masked, the last one stays readable for revealMs', async ({ page }) => {
@@ -445,23 +446,5 @@ test.describe('labels', () => {
       await expect(c.entry).toHaveAttribute('data-state', 'stored');
       expect(messages).toEqual([]);
     }
-  });
-
-  test('the labels and their position can be forced', async ({ page }) => {
-    const c = await openHarness(page, { labels: 'reenterOnly', labelPosition: 'above' });
-    await expect(c.labels).toHaveText(['Re-enter SIN']);
-    await expect(c.entry).toHaveAttribute('data-label-position', 'above');
-
-    await openHarness(page, { width: 560, labels: 'both', labelPosition: 'inline' });
-    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
-    await expect(c.entry).toHaveAttribute('data-label-position', 'inline');
-    await shot(page, 'labels-both-inline');
-
-    // Forced settings win over what the form shows.
-    await openHarness(page, { width: 560, labels: 'both', labelPosition: 'above' });
-    await wrapInFormCell(page, { label: 'left' });
-    await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
-    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
-    await expect(c.entry).toHaveAttribute('data-label-position', 'above');
   });
 });

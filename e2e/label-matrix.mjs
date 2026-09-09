@@ -2,9 +2,9 @@
 // inside a copy of a Unified Interface form cell, and composed into one
 // sheet: shots/label-matrix.png (plus one png per cell).
 //
-// Auto rows: the cell label on the left, on top, or hidden, each in a wide
-// cell (fields side by side) and a narrow one (stacked). Forced rows: the
-// four Labels x Label position settings, wide and narrow.
+// Rows: the cell label on the left, on top, or hidden, each in a wide cell
+// (fields side by side) and a narrow one (stacked). Nothing is configurable,
+// so this is every combination there is.
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -35,15 +35,6 @@ const CELLS = [
   { group: 'Auto, cell label hidden, neighbours labelled on the left', title: 'narrow cell', width: NARROW, form: { label: 'hidden', sibling: 'left' } },
   { group: 'Auto, cell label hidden, neighbours labelled on top', title: 'wide cell', width: WIDE, form: { label: 'hidden', sibling: 'top' } },
   { group: 'Auto, cell label hidden, neighbours labelled on top', title: 'narrow cell', width: NARROW, form: { label: 'hidden', sibling: 'top' } },
-  // Forced: the two properties set by hand, shown in a cell whose label is on the left.
-  { group: 'Forced: Labels = Both fields, Label position = Above', title: 'wide cell', width: WIDE, form: { label: 'left' }, props: { labels: 'both', labelPosition: 'above' } },
-  { group: 'Forced: Labels = Both fields, Label position = Above', title: 'narrow cell', width: NARROW, form: { label: 'left' }, props: { labels: 'both', labelPosition: 'above' } },
-  { group: 'Forced: Labels = Both fields, Label position = Beside', title: 'wide cell', width: WIDE, form: { label: 'left' }, props: { labels: 'both', labelPosition: 'inline' } },
-  { group: 'Forced: Labels = Both fields, Label position = Beside', title: 'narrow cell', width: NARROW, form: { label: 'left' }, props: { labels: 'both', labelPosition: 'inline' } },
-  { group: 'Forced: Labels = Re-enter only, Label position = Above', title: 'wide cell', width: WIDE, form: { label: 'left' }, props: { labels: 'reenterOnly', labelPosition: 'above' } },
-  { group: 'Forced: Labels = Re-enter only, Label position = Above', title: 'narrow cell', width: NARROW, form: { label: 'left' }, props: { labels: 'reenterOnly', labelPosition: 'above' } },
-  { group: 'Forced: Labels = Re-enter only, Label position = Beside', title: 'wide cell', width: WIDE, form: { label: 'left' }, props: { labels: 'reenterOnly', labelPosition: 'inline' } },
-  { group: 'Forced: Labels = Re-enter only, Label position = Beside', title: 'narrow cell', width: NARROW, form: { label: 'left' }, props: { labels: 'reenterOnly', labelPosition: 'inline' } },
 ];
 
 const browser = await chromium.launch();
@@ -54,7 +45,7 @@ try {
   for (const [i, cell] of CELLS.entries()) {
     // The fake cell adds a 120px label column on the left; the control gets `width` minus that.
     const controlWidth = cell.form.label === 'top' ? cell.width : cell.width - 128;
-    const c = await openHarness(page, { width: controlWidth, ...(cell.props ?? {}) });
+    const c = await openHarness(page, { width: controlWidth });
     // openHarness sizes the viewport to the control; the fake cell needs room beside the property pane.
     await page.setViewportSize({ width: 1400, height: 800 });
     await wrapInFormCell(page, cell.form);
@@ -82,7 +73,7 @@ try {
     figcaption { font-size: 12px; color: #616161; margin-bottom: 4px; }
     img { display: block; border: 1px solid #ededed; }
   </style>
-  <h1>Sealed Input: every label combination (real control, harness, inside a copy of a form cell)</h1>
+  <h1>Sealed Input: every label situation (real control, harness, inside a copy of a form cell)</h1>
   ${groups.map((g) => `<div class="g"><h2>${g}</h2><div class="row">${files.filter((f) => f.group === g).map((f) => {
     const b64 = fs.readFileSync(f.file).toString('base64');
     return `<figure><figcaption>${f.title}, ${f.width}px: labels ${f.attrs.labels}, ${f.attrs.pos}, form label ${f.attrs.form}, ${f.attrs.layout}</figcaption><img src="data:image/png;base64,${b64}" style="width:${f.width}px"></figure>`;

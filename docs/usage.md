@@ -92,6 +92,8 @@ Inside a form cell the labels follow the form. With the cell label shown on
 the left, only "Re-enter" appears, beside the second field; with the cell
 label on top, "Re-enter SIN" appears above the second field; with the cell
 label hidden, both fields are labelled, placed like the neighbouring cells.
+The fields are always named after the column's display name; there is no
+setting for the wording, which labels go, or where they sit.
 
 | Cell label on the left | Cell label on top | Cell label hidden |
 |---|---|---|
@@ -104,9 +106,6 @@ optional.
 
 | Property | Default | What it does |
 |---|---|---|
-| Label | Column display name | The word on the fields: `SIN` and `Re-enter SIN`. Set it when the column name is long or when the fields should say something else. |
-| Labels | Auto (follow the form) | Which fields carry a label. `Auto` labels only the second field, `Re-enter`, when the form displays the column label for the cell, and both fields when the cell's label is hidden. `Both fields` and `Re-enter only` force one or the other. |
-| Label position | Auto (follow the section) | Where the labels sit. `Auto` puts them beside the fields when the section has its labels on the left and above the fields when the section has them on top. `Above the field` and `Beside the field` force one or the other. |
 | Characters | Digits only | `Digits only` drops anything that is not 0 to 9. `Any character` accepts whatever is typed. |
 | Validation | None | `Canadian SIN` requires nine digits with a valid Luhn checksum and caps typing at nine. |
 | Maximum length | 0 | Longest value that can be typed. 0 means no limit. Ignored when validation is SIN. |
@@ -170,11 +169,12 @@ Be clear about this with whoever asked for it.
 - **Read-only rendering is untested** in the local harness, which has no
   disabled switch. It is a plain text node with no interaction, so the risk is
   cosmetic.
-- **Auto labels read the page, not an API.** Nothing in the control framework
+- **The labels read the page, not an API.** Nothing in the control framework
   says whether the form shows the cell label or where the section puts it, so
   the control looks at the DOM around it the way Unified Interface renders a
-  cell today. If that changes, `Auto` falls back to labelling both fields,
-  above; set the two label properties by hand if it ever guesses wrong.
+  cell today. If that changes, the control falls back to labelling both
+  fields, above. There is no property to correct it by hand; a fix means a new
+  version of the control.
 
 ## Build from source
 

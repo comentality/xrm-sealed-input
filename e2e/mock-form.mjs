@@ -39,7 +39,6 @@ try {
   await setWidth(page, 560);
   await select(row(page, 'validation').locator('select'), 'sin');
   await set(row(page, 'revealMs').locator('input'), 60000);
-  await set(row(page, 'label').locator('input[type=text]'), 'SIN');
   await set(row(page, 'value').locator('input[type=text]'), '');
   await page.locator('[data-testid="sealed-first"]').waitFor();
 
