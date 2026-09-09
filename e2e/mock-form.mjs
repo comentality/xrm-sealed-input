@@ -36,23 +36,29 @@ try {
 
   // Configure as a SIN field, with a long reveal so the typing shot is stable,
   // and as wide as the form cell it is about to sit in.
-  await set(page.locator('.io-item, .key-value-pair').filter({ hasText: 'Component Container Width' }).locator('input').first(), 640);
+  await set(page.locator('.io-item, .key-value-pair').filter({ hasText: 'Component Container Width' }).locator('input').first(), 560);
   await select(row('validation').locator('select'), 'sin');
   await set(row('revealMs').locator('input'), 60000);
 
   // A stored value first, so a static copy of the stored view can stand in
   // for the Bank account cell; then blank it for the live SIN cell.
+  await set(row('label').locator('input[type=text]'), 'Bank account');
   await set(valueInput, '0041234567');
-  await page.locator('[data-testid="sealed-stored"]').waitFor();
+  await page.locator('[data-testid="sealed-entry"][data-state="stored"]').waitFor();
 
-  // Keep a static copy of the stored view, then blank the value while the
-  // harness panel is still visible and can be driven.
-  await page.evaluate(() => {
-    const copy = document.querySelector('.control-container [data-testid="sealed-stored"]').cloneNode(true);
-    copy.removeAttribute('data-testid');
-    copy.querySelectorAll('[data-testid]').forEach((n) => n.removeAttribute('data-testid'));
-    window.__storedCopy = copy;
-  });
+  // Keep a picture of the stored state as the bank account cell (a DOM clone
+  // loses Fluent's styling), then relabel and blank the value while the harness
+  // panel is still visible.
+  const storedPng = await page.locator('.control-container [data-testid="sealed-entry"]').screenshot();
+  const storedBox = await page.locator('.control-container [data-testid="sealed-entry"]').boundingBox();
+  await page.evaluate(({ png, w }) => {
+    const img = document.createElement('img');
+    img.src = `data:image/png;base64,${png}`;
+    img.style.width = `${w}px`;
+    img.style.display = 'block';
+    window.__storedCopy = img;
+  }, { png: storedPng.toString('base64'), w: storedBox.width });
+  await set(row('label').locator('input[type=text]'), 'SIN');
   await set(valueInput, '');
   await page.locator('[data-testid="sealed-first"]').waitFor();
 
@@ -156,7 +162,7 @@ try {
   await page.keyboard.type('6');
   await page.keyboard.press('Enter');
   await page.keyboard.type('046454286');
-  await page.locator('[data-testid="sealed-stored"]').waitFor();
+  await page.locator('[data-testid="sealed-entry"][data-state="stored"]').waitFor();
   await shot('stored');
 } finally {
   await browser.close();

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
-  <control namespace="KK" constructor="SealedInput" version="0.1.1" display-name-key="Sealed Input" description-key="Entry field for sensitive numbers such as bank accounts and SIN. Typed characters are masked, the clipboard is blocked, and the value must be entered twice before it is stored." control-type="virtual" >
+  <control namespace="KK" constructor="SealedInput" version="0.2.0" display-name-key="Sealed Input" description-key="Entry field for sensitive numbers such as bank accounts and SIN. Typed characters are masked, the clipboard is blocked, and the value must be entered twice before it is stored." control-type="virtual" >
     <external-service-usage enabled="false">
     </external-service-usage>
     <property name="value" display-name-key="Value" description-key="Text column that receives the entered value" of-type="SingleLine.Text" usage="bound" required="true" />
+    <property name="label" display-name-key="Label" description-key="Word used to label the two fields, as in SIN and Re-enter SIN. Defaults to the column display name." of-type="SingleLine.Text" usage="input" required="false" />
     <property name="characters" display-name-key="Characters" description-key="Which characters may be typed. Digits only is the default." of-type="Enum" usage="input" required="false" default-value="digits">
       <value name="digits" display-name-key="Digits only">digits</value>
       <value name="any" display-name-key="Any character">any</value>

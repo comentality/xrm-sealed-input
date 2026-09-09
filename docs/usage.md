@@ -1,29 +1,30 @@
 # Sealed Input: how to use it
 
 A field control for model-driven apps that makes a person type a sensitive
-number by hand. Nothing can be pasted or dropped into it, every character
-turns into a dot as soon as the next one is typed, and the value is only
-stored once it has been entered twice the same way. Made for bank account
-numbers and Social Insurance Numbers.
+number by hand, twice. Nothing can be pasted or dropped into it, every
+character turns into a dot as soon as the next one is typed, and the column
+only changes once both entries agree. Made for bank account numbers and Social
+Insurance Numbers.
 
 ## On a form
 
 A Contact form in a model-driven app. The wide column has the control on SIN
 and on bank account; the narrow column shows the SIN column once more. The
-control measures the cell it is given: from 480 pixels up, Enter and Enter
-again sit side by side; below that they stack.
+fields are labelled with the column name and "Re-enter" plus the column name.
+The control measures the cell it is given: from 480 pixels up the two fields
+share one line; below that they stack.
 
 ![Contact form: SIN empty in a wide and a narrow column, bank account stored](img/form-real-empty.png)
 
-Typing the SIN in the wide column. The narrow copy stays empty until the
-value is stored.
+Typing the SIN in the wide column. The bank account, already stored, shows a
+fixed row of dots in both of its fields.
 
 ![SIN being typed on the form, side by side](img/form-real-typing.png)
 
-After the second entry matched. Every instance shows dots only, and the form
-is marked unsaved until the record is saved.
+After the second entry matched. Every field shows dots only, and the form is
+marked unsaved until the record is saved.
 
-![All instances stored on the form](img/form-real-stored.png)
+![All fields stored on the form](img/form-real-stored.png)
 
 These are real screenshots taken by `e2e/run.mjs` in a test environment: it
 builds the fixture form, types the SIN twice, saves with Ctrl+S and reads the
@@ -32,9 +33,9 @@ column back through the Web API to confirm it holds exactly what was typed.
 
 ## What the user sees
 
-The column starts empty. Two fields, one hint.
+Always two fields. An empty column shows them empty, with a hint.
 
-![empty: Enter and Enter again fields](img/entry-empty.png)
+![empty: SIN and Re-enter SIN fields](img/entry-empty.png)
 
 While typing, the character just typed stays readable for a second, then
 becomes a dot. Everything before it is already a dot. Leaving the field
@@ -52,37 +53,36 @@ the cell, so the same control stacks on a phone or in a narrow section.
 | ![stacked](img/layout-narrow.png) | ![side by side](img/layout-wide.png) |
 
 Enter, or Tab, moves to the second field. When the second entry is as long as
-the first and differs, the control says so. Nothing is stored. Backspace and
-retype, or **Start over** to clear both fields.
+the first and differs, the control says so under the second field. Nothing is
+stored. Backspace and retype, or **Start over** to clear both fields.
 
 ![Does not match the first entry](img/entry-mismatch.png)
 
-Side by side, the message sits under the field it is about.
-
 ![side by side mismatch](img/layout-wide-mismatch.png)
 
-The moment both entries agree the value is written to the column and the
-control collapses to a row of dots. The row is always eight dots, whatever the
-length of the value, so the stored view gives nothing away. Save the record as
-usual.
+The moment both entries agree the value is written to the column and both
+fields switch to a fixed row of eight dots, whatever the length of the value,
+so a stored value gives nothing away. Save the record as usual.
 
-![eight dots, Replace, Clear, and a saved note](img/stored-saved.png)
+![eight dots in both fields and a saved note](img/stored-saved.png)
 
-Opening a record that already has a value shows the same row of dots. The
-value itself is never rendered. **Replace** opens the two fields again;
-**Cancel** goes back without changing anything. **Clear** empties the column.
+Opening a record that already has a value shows the same two rows of dots. The
+value itself is never rendered. To **replace** it, click into either field and
+type: both fields clear and a fresh entry begins. To **clear** it, click into a
+field and press Backspace: the column is emptied at once. **Start over** during
+a replacement goes back to the stored dots without changing anything.
 
-| Existing value | After Replace |
+| Existing value | After the first keystroke |
 |---|---|
-| ![eight dots with Replace and Clear](img/stored.png) | ![two empty fields with Cancel](img/entry-replacing.png) |
+| ![two rows of dots](img/stored.png) | ![fresh entry begun](img/entry-replacing.png) |
 
 With SIN validation on, a nine-digit entry that fails the checksum is flagged
 under the first field, before the person types it a second time.
 
 ![Not a valid SIN. Check the nine digits.](img/entry-sin-invalid.png)
 
-When the form is read-only the control shows eight dots, or a dash when the
-column is empty, and nothing else.
+When the form is read-only both fields are disabled and show eight dots, or
+nothing when the column is empty.
 
 ## Configuration
 
@@ -91,6 +91,7 @@ optional.
 
 | Property | Default | What it does |
 |---|---|---|
+| Label | Column display name | The word on the two fields: `SIN` and `Re-enter SIN`. Set it when the column name is long or when the fields should say something else. |
 | Characters | Digits only | `Digits only` drops anything that is not 0 to 9. `Any character` accepts whatever is typed. |
 | Validation | None | `Canadian SIN` requires nine digits with a valid Luhn checksum and caps typing at nine. |
 | Maximum length | 0 | Longest value that can be typed. 0 means no limit. Ignored when validation is SIN. |
@@ -172,8 +173,9 @@ stored view. Blank the value in the property panel to see the entry fields.
 `e2e/` holds a Playwright Test suite that hosts the harness headlessly and
 drives the control with real keystrokes: masking and reveal timing, Backspace,
 Enter, the digit filter, the length cap, Ctrl+V and dispatched paste, drop,
-cut, copy and context-menu events, mismatch, match and store, Replace, Cancel,
-Clear, and the SIN checksum. It also takes the screenshots on this page.
+cut, copy and context-menu events, mismatch, match and store, replacing and
+clearing a stored value, the SIN checksum, and narrow and wide layout. It also
+takes the screenshots on this page.
 
 ```powershell
 cd SealedInput && npm run build

@@ -29,6 +29,7 @@ export class SealedInput implements ComponentFramework.ReactControl<IInputs, IOu
       rules,
       revealMs: p.revealMs?.raw ?? 1000,
       layout: (p.layout?.raw as Layout | null) ?? "auto",
+      label: (p.label?.raw ?? "").trim() || (p.value.attributes?.DisplayName ?? "").trim() || "Value",
       onCommit: (v) => {
         this.value = v; // "" clears the column; undefined would mean "unchanged"
         this.notifyOutputChanged();

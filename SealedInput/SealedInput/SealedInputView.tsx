@@ -22,17 +22,18 @@ export interface ISealedInputViewProps {
   revealMs: number;
   /** Auto switches to side by side at 480px of measured width. */
   layout: Layout;
+  /** The column's name; the fields are labelled "<label>" and "Re-enter <label>". */
+  label: string;
   /** Empty string clears; null is never sent because the platform reads it as "no change". */
   onCommit: (value: string) => void;
 }
 
 const useStyles = makeStyles({
   root: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS, width: "100%", textAlign: "left" },
-  row: { display: "flex", alignItems: "center", columnGap: tokens.spacingHorizontalS },
+  row: { display: "flex", alignItems: "center", columnGap: tokens.spacingHorizontalS, minHeight: "20px" },
   fields: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS },
   fieldsSide: { flexDirection: "row", alignItems: "flex-start", columnGap: tokens.spacingHorizontalM },
   field: { flex: "1 1 0", minWidth: 0 },
-  dots: { letterSpacing: "0.15em", fontFamily: tokens.fontFamilyMonospace, color: tokens.colorNeutralForeground2 },
   hint: { color: tokens.colorNeutralForeground3 },
   input: { width: "100%" },
 });
@@ -51,7 +52,13 @@ const quietAttrs = {
 
 type Slot = "first" | "second";
 
-export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, onCommit }) => {
+/**
+ * Always two fields. With a stored value and nothing typed yet, both show a
+ * fixed row of dots ("stored" state); the first keystroke starts a fresh
+ * entry, Backspace clears the column. The value is written when both entries
+ * agree; the fields then go back to the stored dots.
+ */
+export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, onCommit }) => {
   const styles = useStyles();
   const hasStored = stored !== "";
 
@@ -74,21 +81,22 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   const [first, setFirst] = React.useState("");
   const [second, setSecond] = React.useState("");
   const [revealed, setRevealed] = React.useState<Slot | null>(null);
-  const [replacing, setReplacing] = React.useState(false);
+  const [editing, setEditing] = React.useState(false); // false with a stored value = showing the dots
   const [justSaved, setJustSaved] = React.useState(false);
 
   const firstRef = React.useRef<HTMLInputElement>(null);
   const secondRef = React.useRef<HTMLInputElement>(null);
   const timer = React.useRef<number | undefined>(undefined);
 
-  const entering = !hasStored || replacing;
+  const showingStored = hasStored && !editing;
+  const state = showingStored ? "stored" : first.length + second.length > 0 ? "entering" : "empty";
 
   // Whatever the platform now holds is the truth; a fresh value ends any entry in progress.
   React.useEffect(() => {
     setFirst("");
     setSecond("");
     setRevealed(null);
-    setReplacing(false);
+    setEditing(false);
   }, [stored]);
 
   const reveal = React.useCallback(
@@ -112,14 +120,14 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   // closed here as well as in the reset effect above: when the new value equals
   // the stored one the host has nothing to push, and the effect would not run.
   React.useEffect(() => {
-    if (!entering || !canCommit(first, second, rules)) return;
+    if (!canCommit(first, second, rules)) return;
     window.clearTimeout(timer.current);
     setRevealed(null);
     setJustSaved(true);
     onCommit(first);
     setFirst("");
     setSecond("");
-    setReplacing(false);
+    setEditing(false);
   }, [first, second]);
 
   // Native beforeinput is the one place every edit path goes through: keys, IME,
@@ -132,12 +140,29 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
         e.preventDefault();
         if (disabled) return;
         if (e.inputType === "insertText" && e.data) {
+          const typed = e.data;
+          if (showingStored) {
+            // First keystroke over the stored dots: start a fresh entry in this field.
+            setJustSaved(false);
+            setEditing(true);
+            setFirst(slot === "first" ? append("", typed, rules) : "");
+            setSecond(slot === "second" ? append("", typed, rules) : "");
+            reveal(slot);
+            return;
+          }
           setValue((v) => {
-            const next = append(v, e.data ?? "", rules);
+            const next = append(v, typed, rules);
             if (next !== v) reveal(slot);
             return next;
           });
         } else if (e.inputType === "deleteContentBackward") {
+          if (showingStored) {
+            // Backspace over the stored dots clears the column.
+            setJustSaved(false);
+            setEditing(true);
+            onCommit("");
+            return;
+          }
           setRevealed(null);
           setValue(backspace);
         }
@@ -170,92 +195,70 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
     setFirst("");
     setSecond("");
     setRevealed(null);
+    setEditing(false);
     firstRef.current?.focus();
   };
 
-  if (disabled) {
-    return (
-      <div className={styles.root} data-testid="sealed-readonly">
-        <Text className={styles.dots}>{hasStored ? STORED_DOTS : "—"}</Text>
-      </div>
-    );
-  }
-
-  if (!entering) {
-    return (
-      <div className={styles.root} data-testid="sealed-stored">
-        <div className={styles.row}>
-          <Text className={styles.dots} aria-label="A value is stored and hidden">
-            {STORED_DOTS}
-          </Text>
-          <Button size="small" appearance="secondary" onClick={() => { setJustSaved(false); setReplacing(true); }} data-testid="sealed-replace">
-            Replace
-          </Button>
-          <Button size="small" appearance="subtle" onClick={() => { setJustSaved(false); onCommit(""); }} data-testid="sealed-clear">
-            Clear
-          </Button>
-        </div>
-        {justSaved && (
-          <Text size={200} className={styles.hint} data-testid="sealed-saved">
-            Entered twice and stored. Save the record to keep it.
-          </Text>
-        )}
-      </div>
-    );
-  }
+  const shown = (value: string, slot: Slot) => (showingStored ? STORED_DOTS : display(value, revealed === slot));
+  const hint = disabled
+    ? ""
+    : showingStored
+      ? justSaved
+        ? "Entered twice and stored. Save the record to keep it."
+        : "Stored. Type to replace, Backspace to clear."
+      : "Type it twice. Pasting is off.";
 
   return (
-    <div className={styles.root} data-testid="sealed-entry" data-layout={side ? "side-by-side" : "stacked"} ref={rootRef}>
+    <div className={styles.root} data-testid="sealed-entry" data-layout={side ? "side-by-side" : "stacked"} data-state={state} ref={rootRef}>
       <div className={side ? `${styles.fields} ${styles.fieldsSide}` : styles.fields}>
-      <Field label="Enter" className={styles.field} validationState={firstError ? "error" : "none"} validationMessage={firstError ?? undefined}>
-        <Input
-          ref={firstRef}
-          type="text"
-          inputMode={rules.characters === "digits" ? "numeric" : "text"}
-          value={display(first, revealed === "first")}
-          onChange={() => undefined}
-          onBlur={() => setRevealed(null)}
-          onKeyDown={onKeyDown("first")}
-          appearance="filled-darker"
-          className={styles.input}
-          aria-label="Enter the value"
-          data-testid="sealed-first"
-          {...quietAttrs}
-          {...blocked}
-        />
-      </Field>
-      <Field label="Enter again" className={styles.field} validationState={secondError ? "error" : "none"} validationMessage={secondError ?? undefined}>
-        <Input
-          ref={secondRef}
-          type="text"
-          inputMode={rules.characters === "digits" ? "numeric" : "text"}
-          value={display(second, revealed === "second")}
-          onChange={() => undefined}
-          onBlur={() => setRevealed(null)}
-          appearance="filled-darker"
-          className={styles.input}
-          aria-label="Enter the value again"
-          data-testid="sealed-second"
-          {...quietAttrs}
-          {...blocked}
-        />
-      </Field>
+        <Field label={label} className={styles.field} validationState={firstError ? "error" : "none"} validationMessage={firstError ?? undefined}>
+          <Input
+            ref={firstRef}
+            type="text"
+            inputMode={rules.characters === "digits" ? "numeric" : "text"}
+            value={shown(first, "first")}
+            disabled={disabled}
+            onChange={() => undefined}
+            onBlur={() => setRevealed(null)}
+            onKeyDown={onKeyDown("first")}
+            appearance="filled-darker"
+            className={styles.input}
+            aria-label={label}
+            data-testid="sealed-first"
+            {...quietAttrs}
+            {...blocked}
+          />
+        </Field>
+        <Field label={`Re-enter ${label}`} className={styles.field} validationState={secondError ? "error" : "none"} validationMessage={secondError ?? undefined}>
+          <Input
+            ref={secondRef}
+            type="text"
+            inputMode={rules.characters === "digits" ? "numeric" : "text"}
+            value={shown(second, "second")}
+            disabled={disabled}
+            onChange={() => undefined}
+            onBlur={() => setRevealed(null)}
+            appearance="filled-darker"
+            className={styles.input}
+            aria-label={`Re-enter ${label}`}
+            data-testid="sealed-second"
+            {...quietAttrs}
+            {...blocked}
+          />
+        </Field>
       </div>
-      <div className={styles.row}>
-        {(first.length > 0 || second.length > 0) && (
-          <Button size="small" appearance="subtle" onClick={startOver} data-testid="sealed-startover">
-            Start over
-          </Button>
-        )}
-        {replacing && (
-          <Button size="small" appearance="subtle" onClick={() => { setFirst(""); setSecond(""); setRevealed(null); setReplacing(false); }} data-testid="sealed-cancel">
-            Cancel
-          </Button>
-        )}
-        <Text size={200} className={styles.hint}>
-          Type it twice. Pasting is off.
-        </Text>
-      </div>
+      {!disabled && (
+        <div className={styles.row}>
+          {state === "entering" && (
+            <Button size="small" appearance="subtle" onClick={startOver} data-testid="sealed-startover">
+              Start over
+            </Button>
+          )}
+          <Text size={200} className={styles.hint} data-testid="sealed-hint">
+            {hint}
+          </Text>
+        </div>
+      )}
     </div>
   );
 };

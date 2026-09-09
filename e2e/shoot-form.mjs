@@ -25,7 +25,7 @@ export async function shootForm(page, setup) {
   const record = `pagetype=entityrecord&etn=contact&id=${setup.contactId}&formid=${setup.formId}`;
   const urls = [`${orgUrl}/main.aspx?appid=${appId}&${record}`, `${orgUrl}/main.aspx?${record}`];
   const first = page.locator('[data-testid="sealed-first"]');
-  const stored = page.locator('[data-testid="sealed-stored"]');
+  const stored = page.locator('[data-testid="sealed-entry"][data-state="stored"]');
   const errorDlg = page.locator('[data-id="errorDialog_subtitle"], [data-id="dialogSubtitle"], [data-id="errorDialogTitle"]');
   out.attempts = [];
   let n = 0;

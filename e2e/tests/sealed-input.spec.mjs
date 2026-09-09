@@ -10,9 +10,17 @@ test.describe('entry', () => {
     const c = await openHarness(page);
     await expect(c.first).toBeVisible();
     await expect(c.second).toBeVisible();
-    await expect(c.entry).toContainText('Type it twice. Pasting is off.');
+    await expect(c.hint).toHaveText('Type it twice. Pasting is off.');
     await expect(c.startOver).toHaveCount(0);
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
     await shot(page, 'entry-empty');
+  });
+
+  test('the fields carry the column name and Re-enter it', async ({ page }) => {
+    const c = await openHarness(page, { label: 'Bank account' });
+    await expect(c.labels).toHaveText(['Bank account', 'Re-enter Bank account']);
+    await expect(c.first).toHaveAttribute('aria-label', 'Bank account');
+    await expect(c.second).toHaveAttribute('aria-label', 'Re-enter Bank account');
   });
 
   test('earlier characters are masked, the last one stays readable for revealMs', async ({ page }) => {
@@ -188,56 +196,65 @@ test.describe('confirmation and storing', () => {
     await page.keyboard.press('Enter');
     await page.keyboard.type('00123456789');
     await expect(c.stored).toBeVisible();
-    await expect(c.saved).toContainText('Entered twice and stored');
+    await expect(c.hint).toContainText('Entered twice and stored');
     await expect(harnessValue(page)).toHaveValue('00123456789');
-    // Fixed-width dots: the stored view leaks neither the value nor its length.
-    await expect(c.stored).toContainText(dots(8));
+    // Fixed-width dots in both fields: neither the value nor its length shows.
+    await expect(c.first).toHaveValue(dots(8));
+    await expect(c.second).toHaveValue(dots(8));
     await expect(c.container).not.toContainText('00123456789');
-    await expect(c.container).not.toContainText(dots(11));
+    await expect(c.startOver).toHaveCount(0);
     await shot(page, 'stored-saved');
   });
 
-  test('a stored value on load shows dots only', async ({ page }) => {
+  test('a stored value on load shows dots in both fields', async ({ page }) => {
     const c = await openHarness(page, { value: 'secret123' });
-    await expect(c.stored).toContainText(dots(8));
+    await expect(c.first).toHaveValue(dots(8));
+    await expect(c.second).toHaveValue(dots(8));
     await expect(c.container).not.toContainText('secret123');
-    await expect(c.saved).toHaveCount(0);
+    await expect(c.hint).toHaveText('Stored. Type to replace, Backspace to clear.');
     await shot(page, 'stored');
   });
 
-  test('Replace opens entry with Cancel; Cancel returns to the stored view', async ({ page }) => {
-    const c = await openHarness(page, { value: 'secret123' });
-    await c.replace.click();
-    await expect(c.entry).toBeVisible();
-    await expect(c.cancel).toBeVisible();
+  test('typing over the stored dots starts a fresh entry', async ({ page }) => {
+    const c = await openHarness(page, { value: 'secret123', revealMs: 0 });
+    await c.first.click();
+    await page.keyboard.type('7');
+    await expect(c.entry).toHaveAttribute('data-state', 'entering');
+    await expect(c.first).toHaveValue(dots(1));
+    await expect(c.second).toHaveValue('');
+    await expect(harnessValue(page)).toHaveValue('secret123'); // untouched until the entry completes
     await shot(page, 'entry-replacing');
-    await c.cancel.click();
-    await expect(c.stored).toBeVisible();
+  });
+
+  test('typing in the second field over the stored dots also starts fresh, there', async ({ page }) => {
+    const c = await openHarness(page, { value: 'secret123', revealMs: 0 });
+    await c.second.click();
+    await page.keyboard.type('7');
+    await expect(c.first).toHaveValue('');
+    await expect(c.second).toHaveValue(dots(1));
+  });
+
+  test('Start over during a replacement returns to the stored dots', async ({ page }) => {
+    const c = await openHarness(page, { value: 'secret123', revealMs: 0 });
+    await c.first.click();
+    await page.keyboard.type('12');
+    await c.startOver.click();
+    await expect(c.entry).toHaveAttribute('data-state', 'stored');
+    await expect(c.first).toHaveValue(dots(8));
+    await expect(c.second).toHaveValue(dots(8));
     await expect(harnessValue(page)).toHaveValue('secret123');
   });
 
-  test('Replace with the same value again closes the entry', async ({ page }) => {
+  test('re-entering the same value again returns to the stored dots', async ({ page }) => {
     // The host has nothing new to push when the value is unchanged, so the
     // control must close the entry on its own.
     const c = await openHarness(page, { value: '777', revealMs: 0 });
-    await c.replace.click();
     await c.first.click();
     await page.keyboard.type('777');
     await page.keyboard.press('Enter');
     await page.keyboard.type('777');
-    await expect(c.stored).toBeVisible();
+    await expect(c.entry).toHaveAttribute('data-state', 'stored');
     await expect(harnessValue(page)).toHaveValue('777');
-  });
-
-  test('Cancel forgets what was typed', async ({ page }) => {
-    const c = await openHarness(page, { value: 'secret123', revealMs: 0 });
-    await c.replace.click();
-    await c.first.click();
-    await page.keyboard.type('12');
-    await c.cancel.click();
-    await c.replace.click();
-    await expect(c.first).toHaveValue('');
-    await expect(c.second).toHaveValue('');
   });
 
   test('the whole flow raises no console errors', async ({ page }) => {
@@ -250,16 +267,17 @@ test.describe('confirmation and storing', () => {
     await page.keyboard.press('Enter');
     await page.keyboard.type('4321');
     await expect(c.stored).toBeVisible();
-    await c.replace.click();
-    await c.cancel.click();
-    await c.clear.click();
-    await expect(c.entry).toBeVisible();
+    await c.first.click();
+    await page.keyboard.type('9');
+    await c.startOver.click();
+    await c.first.click();
+    await page.keyboard.press('Backspace');
+    await expect(c.entry).toHaveAttribute('data-state', 'empty');
     expect(messages).toEqual([]);
   });
 
-  test('Replace then a matching entry overwrites the value', async ({ page }) => {
+  test('a new matching entry overwrites the stored value', async ({ page }) => {
     const c = await openHarness(page, { value: 'secret123', revealMs: 0 });
-    await c.replace.click();
     await c.first.click();
     await page.keyboard.type('777');
     await page.keyboard.press('Enter');
@@ -268,11 +286,14 @@ test.describe('confirmation and storing', () => {
     await expect(harnessValue(page)).toHaveValue('777');
   });
 
-  test('Clear empties the column and reopens entry', async ({ page }) => {
+  test('Backspace over the stored dots clears the column', async ({ page }) => {
     const c = await openHarness(page, { value: 'secret123' });
-    await c.clear.click();
+    await c.first.click();
+    await page.keyboard.press('Backspace');
     await expect(harnessValue(page)).toHaveValue('');
-    await expect(c.entry).toBeVisible();
+    await expect(c.entry).toHaveAttribute('data-state', 'empty');
+    await expect(c.first).toHaveValue('');
+    await expect(c.second).toHaveValue('');
   });
 });
 
