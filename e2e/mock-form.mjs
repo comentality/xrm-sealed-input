@@ -146,7 +146,6 @@ try {
   await page2.goto(`http://localhost:${port}/`, { waitUntil: 'load' });
   await page2.locator('.control-container [data-testid^="sealed-"]').first().waitFor();
   await setWidth(page2, cellWidth);
-  await set(row(page2, 'label').locator('input[type=text]'), 'Bank account');
   await set(row(page2, 'value').locator('input[type=text]'), '0041234567');
   await page2.locator('[data-testid="sealed-entry"][data-state="stored"]').waitFor();
   await page2.evaluate(() => {
