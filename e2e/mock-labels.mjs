@@ -206,6 +206,12 @@ try {
   for (const c of CONTEXTS) {
     await page.locator(`#${c.id}`).screenshot({ path: path.join(shots, `label-mock-${c.id}.png`) });
   }
+  // Phone pass: one option per row, page just wider than the widest mini form.
+  await page.setViewportSize({ width: 830, height: 900 });
+  await page.addStyleTag({ content: '.grid { flex-direction: column; } .ctx { padding: 12px 14px; } body { padding: 12px; }' });
+  for (const c of CONTEXTS) {
+    await page.locator(`#${c.id}`).screenshot({ path: path.join(shots, `label-mock-${c.id}-phone.png`) });
+  }
   console.log(htmlPath);
   console.log(path.join(shots, 'label-mock.png'));
 } finally {
