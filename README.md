@@ -35,9 +35,13 @@ Dataverse column security's job; the manual says so.
   for showing the look before the control is in an environment.
 - `docs/usage.md`: the manual.
 
-Not built: a Dataverse-side run (push the control, put it on a form, drive the
-real form). `xrm-plain-number/e2e/run.mjs` shows the pattern; it needs a headed
-sign-in.
+- `e2e/run.mjs`: the Dataverse-side run. `setup-form.mjs` creates two text
+  columns on Contact, a "Sealed Input E2E" form with the control on both, and a
+  test contact; `shoot-form.mjs` opens the record, screenshots it, types a SIN
+  twice, saves with Ctrl+S and reads the column back. `browser.mjs` is the
+  sibling's signed-in persistent-profile opener (`.auth/`, gitignored). Ran
+  green on 2026-09-09 against the test env; the control is registered there as
+  `cmtl_KK.SealedInput`.
 
 ## Decisions (2026-09-09)
 
@@ -88,3 +92,11 @@ Each of these was an open question in the first README.
   `eslint-disable react-hooks/exhaustive-deps` comment fails the build.
 - Same as the sibling: no apostrophes in manifest key strings, Fluent pinned to
   9.46.2.
+- `new URL(import.meta.url).pathname` is not a Windows path (leading slash
+  before the drive); use `fileURLToPath` for `existsSync` checks.
+- Static input properties in form XML: `<name static="true" type="Enum">v</name>`
+  inside `<parameters>`, one `<customControl>` per formFactor 0, 1, 2. Worked
+  first time.
+- Robocopy of a Chromium profile stalls on the locked cookie database when any
+  Chromium has it open; pass `/R:0 /W:0` and close the holder. An orphaned
+  headless shell from a finished script will hold it indefinitely.

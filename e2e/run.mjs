@@ -6,6 +6,7 @@
 // Writes shots/form-results.json, or shots/form-error.txt on failure.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { openOrg, shotsDir } from './browser.mjs';
 import { shootForm } from './shoot-form.mjs';
 
@@ -22,7 +23,7 @@ try {
   ({ ctx, page } = await openOrg({ headless: !waitForLogin, waitForLogin }));
   if (process.env.SETUP_JSON) {
     result.setup = JSON.parse(process.env.SETUP_JSON);
-  } else if (fs.existsSync(path.join(path.dirname(new URL(import.meta.url).pathname), 'setup-form.mjs'))) {
+  } else if (fs.existsSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'setup-form.mjs'))) {
     const { setupForm } = await import('./setup-form.mjs');
     result.setup = await setupForm(page);
   } else {

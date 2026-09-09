@@ -8,18 +8,25 @@ numbers and Social Insurance Numbers.
 
 ## On a form
 
-A mock-up of a Contact form with the control on two columns: SIN mid-entry,
-bank account already stored. The control is the real build driven with real
-keystrokes; the form around it is static HTML laid out like a model-driven
-app. It is not a screenshot of Dataverse.
+A Contact form in a model-driven app, with the control on two columns. The
+SIN column is empty and waiting; the bank account already holds a value.
 
-![Contact form mock-up, SIN being typed, bank account stored](img/form-mock-typing.png)
+![Contact form: SIN empty with two entry fields, bank account stored as dots](img/form-real-empty.png)
 
-| Empty, waiting for entry | Both stored |
-|---|---|
-| ![SIN empty](img/form-mock-empty-section.png) | ![SIN and bank account stored](img/form-mock-stored-section.png) |
+Typing the SIN. Seven dots and the digit just typed; the bank account stays
+hidden.
 
-Rebuild it with `npm run mock` in `e2e/`.
+![SIN being typed on the form](img/form-real-typing.png)
+
+After the second entry matched. Both columns show dots only, and the form is
+marked unsaved until the record is saved.
+
+![Both columns stored on the form](img/form-real-stored.png)
+
+These are real screenshots taken by `e2e/run.mjs` in a test environment: it
+builds the fixture form, types the SIN twice, saves with Ctrl+S and reads the
+column back through the Web API to confirm it holds exactly what was typed.
+`npm run mock` produces a similar picture without an environment.
 
 ## What the user sees
 
@@ -161,3 +168,15 @@ npm install
 npx playwright test    # starts the harness on port 8183 itself
 npm run docs           # copies the screenshots into docs/img
 ```
+
+Against a real environment, after `pac pcf push`:
+
+```powershell
+node run.mjs --login   # first time: sign in in the window that opens
+node run.mjs           # afterwards: headless, reuses the saved profile
+```
+
+`run.mjs` creates two text columns on Contact (`cmtl_sin`, `cmtl_bankaccount`),
+a Contact main form "Sealed Input E2E", and a contact "Jane Sealed Input E2E",
+then screenshots the form, types a SIN twice, saves and reads the column back.
+All fixtures are ordinary customisations and can be deleted afterwards.

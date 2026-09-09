@@ -1,5 +1,5 @@
 // Copies the screenshots the manual embeds from shots/ into docs/img/.
-// Run after `npx playwright test` and `node mock-form.mjs`.
+// Run after `npx playwright test`, `node mock-form.mjs` and, when available, `node run.mjs`.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,15 @@ const to = path.join(here, '..', 'docs', 'img');
 fs.mkdirSync(to, { recursive: true });
 const keep = ['entry-empty', 'entry-typing', 'entry-masked', 'entry-mismatch', 'entry-sin-invalid', 'entry-replacing', 'stored', 'stored-saved',
   'form-mock-typing', 'form-mock-empty-section', 'form-mock-typing-section', 'form-mock-stored-section'];
+// Real-form shots from run.mjs, renamed for the manual.
+const renamed = { 'form-full-1': 'form-real-empty', 'form-typing': 'form-real-typing', 'form-stored': 'form-real-stored' };
 for (const name of keep) {
   fs.copyFileSync(path.join(from, `${name}.png`), path.join(to, `${name}.png`));
   console.log(`docs/img/${name}.png`);
+}
+for (const [src, dst] of Object.entries(renamed)) {
+  const f = path.join(from, `${src}.png`);
+  if (!fs.existsSync(f)) continue;
+  fs.copyFileSync(f, path.join(to, `${dst}.png`));
+  console.log(`docs/img/${dst}.png`);
 }
