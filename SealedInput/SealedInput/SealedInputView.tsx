@@ -120,7 +120,9 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
     if (col !== labelCol) setLabelCol(col);
   }, [labels.inline, labels.first, labels.second, side]);
   const fieldStyle = labels.inline && labelCol > 0 ? { gridTemplateColumns: `${labelCol}px 1fr` } : undefined;
-  const firstFieldStyle = labels.inline && labels.first === null && !side && labelCol > 0 ? { paddingLeft: `${labelCol}px` } : fieldStyle;
+  // Without a label the input would land in the label column; give it the only column.
+  const firstFieldStyle =
+    labels.inline && labels.first === null ? { gridTemplateColumns: "1fr", paddingLeft: !side && labelCol > 0 ? `${labelCol}px` : 0 } : fieldStyle;
   // Fluent's Label lays its children out as a list, hence the key.
   const labelNode = (text: string | null, ref: React.RefObject<HTMLSpanElement>) =>
     text === null ? undefined : (

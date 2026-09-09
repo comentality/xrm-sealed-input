@@ -84,6 +84,19 @@ Each of these was an open question in the first README.
   pixels, stacked below. A `layout` property forces either. Measured rather
   than taken from `allocatedWidth` so the harness, the form and the mock-up all
   behave the same.
+- **Labels (2026-09-09, on the user's call).** The form draws the cell label
+  itself, so the control's own "SIN" label repeated it and, with labels above
+  the fields, pushed the inputs a line below the neighbouring stock fields.
+  Now: when the form shows the cell label, only the second field is labelled,
+  "Re-enter", placed where the section places labels (beside the field for a
+  Left section, above for a Top one); when the cell label is hidden, both
+  fields are labelled, placed like the neighbouring cells. Two properties,
+  Labels and Label position, default to Auto and can force either. Placeholder
+  text was mocked up and rejected. Auto is DOM sniffing: the control sits in a
+  container whose data-id ends in FieldSectionItemContainer, with the cell
+  label as a `<label>` whose id ends in `-field-label`; left vs above is
+  decided from bounding boxes, and a hidden label borrows the position from a
+  sibling cell. Outside such a container (the harness) it is "hidden, above".
 - **Tooling.** Skeleton copied from `xrm-plain-number` rather than
   `pac pcf init`, which pins Fluent 9.68.0 that the environment rejects.
   Playwright Test with a `webServer` entry, so `npx playwright test` is the
@@ -116,6 +129,17 @@ Each of these was an open question in the first README.
   hands the control no parameter object for it, so `p.layout.raw` threw. Fix:
   clear those caches before opening the form (`shoot-form.mjs` does), guard
   every input read with `?.`, and bump the manifest version on each push.
+- Griffel classes joined with a template string (`${a} ${b}`) leave the
+  cascade to stylesheet insertion order, which differs between page loads in
+  the form host: the wide cell sometimes stacked, and an override of Fluent's
+  label-less horizontal Field padding did nothing. Always `mergeClasses`.
+- A state update with a fresh object on every read, from an effect with no
+  dependency list, re-renders without end; the page hung on the first Enter,
+  but only inside a form cell, where the read returns an object rather than
+  null. Compare before setting, and give the effect its `[]`.
+- Fluent's horizontal Field puts a label-less input in the label column; give
+  that field a single column. Two separate Fields do not share a label column,
+  so the label width is measured and set on both.
 - Robocopy of a Chromium profile stalls on the locked cookie database when any
   Chromium has it open; pass `/R:0 /W:0` and close the holder. An orphaned
   headless shell from a finished script will hold it indefinitely.
