@@ -1,0 +1,15 @@
+node_modules/
+out/
+generated/
+obj/
+bin/
+.auth/
+.env
+*.zip
+e2e/shots/*.png
+!e2e/shots/keep/
+e2e/harness.log
+e2e/login.log
+e2e/login.err
+e2e/run.log
+e2e/run.err
