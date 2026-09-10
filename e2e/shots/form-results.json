@@ -21,18 +21,18 @@
       {
         "url": "https://org7a56f694.crm3.dynamics.com/main.aspx?appid=63bd689b-2995-f111-b8db-70a8a50f575d&pagetype=entityrecord&etn=contact&id=18c36dc2-6dac-f111-b374-7ced8da4bb78&formid=5ea1ed00-aaaa-4bbb-8ccc-000000000003",
         "entryInstances": 9,
-        "storedInstances": 9,
+        "storedInstances": 1,
         "finalUrl": "https://org7a56f694.crm3.dynamics.com/main.aspx?appid=63bd689b-2995-f111-b8db-70a8a50f575d&pagetype=entityrecord&etn=contact&id=18c36dc2-6dac-f111-b374-7ced8da4bb78&formid=5ea1ed00-aaaa-4bbb-8ccc-000000000003"
       }
     ],
     "url": "https://org7a56f694.crm3.dynamics.com/main.aspx?appid=63bd689b-2995-f111-b8db-70a8a50f575d&pagetype=entityrecord&etn=contact&id=18c36dc2-6dac-f111-b374-7ced8da4bb78&formid=5ea1ed00-aaaa-4bbb-8ccc-000000000003",
     "display": {
-      "sinField": "••••••••",
-      "storedViews": 9
+      "sinField": "",
+      "storedViews": 1
     },
     "typing": {
       "sinField": "•••••••8",
-      "storedViews": 8
+      "storedViews": 1
     },
     "stored": {
       "storedViews": 9,
@@ -40,7 +40,7 @@
     },
     "saved": {
       "sin": "046454286",
-      "bank": "123123",
+      "bank": "0041234567",
       "sinMatches": true
     }
   }
