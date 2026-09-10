@@ -19,6 +19,8 @@
   `sealedInput.ts` holds the rules with no React or DOM in them, which is the file to edit for another country's
   checksum or a different character filter. See [VENDORING.md](VENDORING.md).
 - Ships as one solution, managed and unmanaged, plus a source zip for vendoring.
+- The vendoring steps were run end to end before release: a clean `pac pcf init` produces scaffolding identical to
+  this repo's, and the five files plus the Fluent pin build on their own.
 - e2e: 30 Playwright tests against the pcf-start harness cover masking and reveal timing, every blocked input path,
   mismatch, match and store, and the SIN checksum; a second run builds a fixture form in a Dataverse environment,
   types a SIN through the real control, saves it and reads the column back.

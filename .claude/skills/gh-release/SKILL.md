@@ -37,3 +37,11 @@ Deviations from the default release flow.
 - **Screenshots before a release.** `cd e2e && npm test && npm run docs` for the
   harness shots; `node run.mjs` against the test environment for the real-form
   ones. Both were green for 0.4.0.
+- **Prove the vendoring, do not assert it.** Before a release, run the
+  VENDORING.md steps in a scratch folder: `pac pcf init --namespace KK --name
+  SealedInput --template field --framework react`, diff the generated
+  `tsconfig.json`, `eslint.config.mjs`, `pcfconfig.json` and `.pcfproj` against
+  this repo's (they were identical for 0.4.0), copy the five files over, delete
+  `HelloWorld.tsx`, pin Fluent to 9.46.2, `npm install && npm run build`. If the
+  diff stops being clean, VENDORING.md's "everything else is what pac pcf init
+  generates" has to change with it.

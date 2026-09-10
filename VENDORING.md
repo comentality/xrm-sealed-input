@@ -48,6 +48,11 @@ the same files.
    pac solution add-reference --path ../SealedInput
    ```
 
+These five steps were run end to end for 0.4.0, from a clean `pac pcf init` to a
+successful `npm run build`. The generated `tsconfig.json`,
+`eslint.config.mjs`, `pcfconfig.json` and `SealedInput.pcfproj` came out
+identical to this repo's, and the Fluent pin was the only edit needed.
+
 ## Renaming
 
 Want your own namespace or display name? Change `namespace` and

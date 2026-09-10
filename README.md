@@ -40,15 +40,20 @@ Dataverse column security's job; the manual says so.
 
 - `SealedInput/`: the PCF (`KK.SealedInput`, virtual, React 16 + Fluent
   9.46.2), bound to `SingleLine.Text`. Input properties: characters (digits or
-  any), validation (none or Canadian SIN), maximum length, reveal time for the
-  last typed character. `sealedInput.ts` holds the rules with no React or DOM
-  in them; `SealedInputView.tsx` is the UI; `index.ts` wires the platform.
+  any), validation (none or Canadian SIN), maximum length, layout, reveal time
+  for the last typed character. `sealedInput.ts` holds the rules with no React
+  or DOM in them; `SealedInputView.tsx` is the UI; `formLabel.ts` reads the
+  form's own label out of the DOM; `index.ts` wires the platform.
+- `solution/`: the packaging project. `dotnet build -c Release` there produces
+  the importable solution zip; see `.claude/skills/gh-release/SKILL.md` for the
+  managed/unmanaged dance and the source zip.
 - `e2e/`: Playwright Test suite against the pcf-start harness hosted headlessly
-  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 30 tests
+  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 39 tests
   covering masking and reveal timing, the digit filter and length cap, Ctrl+V
   and dispatched paste, drop, cut, copy and context-menu events, mismatch,
-  match and store, Replace, Cancel, Clear, and the SIN checksum. `npm run docs`
-  copies the screenshots into `docs/img`.
+  match and store, Start over, clearing, Ctrl+S, the SIN checksum, the two
+  layouts and every label situation. `npm run docs` copies the screenshots into
+  `docs/img`.
 - `e2e/mock-form.mjs`: wraps the live control in a static Contact form laid
   out like a model-driven app and screenshots it (`npm run mock`). A mock-up,
   for showing the look before the control is in an environment.
