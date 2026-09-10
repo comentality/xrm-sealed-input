@@ -194,6 +194,8 @@ try {
   await page.keyboard.type('6');
   await page.keyboard.press('Enter');
   await page.keyboard.type('046454286');
+  // Written at once; the stored dots appear when focus leaves the field.
+  await page.locator('[data-testid="sealed-second"]').blur();
   await page.locator('[data-testid="sealed-entry"][data-state="stored"]').waitFor();
   await shot('stored');
 } finally {

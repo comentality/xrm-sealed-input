@@ -87,6 +87,8 @@ export async function shootForm(page, setup) {
   await page.keyboard.type(GOOD_SIN.slice(8));
   await page.keyboard.press('Enter');
   await page.keyboard.type(GOOD_SIN);
+  // Written at once; this cell shows the stored dots once focus leaves it.
+  await page.locator('[data-testid="sealed-second"]').first().blur();
   await stored.nth(0).waitFor({ timeout: 10000 });
   await page.waitForTimeout(500);
   out.stored = { storedViews: await stored.count(), pageHasSin: (await page.locator('body').innerText()).includes(GOOD_SIN) };
