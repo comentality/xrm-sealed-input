@@ -121,8 +121,13 @@ Each of these was an open question in the first README.
   evening: leaving either field compares the entries at once (a shorter
   second entry too); a matched value is written at once but the typed dots
   stay until focus leaves, only then the eight stored dots; back in a field,
-  only retyping is allowed (no caret, no partial delete). The full list lives
-  in docs/usage.md under "Interaction rules" and is the place to keep it.
+  only retyping is allowed (no caret, no partial delete). Then: the write
+  itself waits for focus to leave the control (a Backspace clear too), so a
+  second copy of the column on the form does not show the stored dots before
+  the edited one does; Ctrl+S / Cmd+S with focus still in a field writes
+  first, since the form's save would otherwise miss the value. The full list
+  lives in docs/usage.md under "Interaction rules" and is the place to keep
+  it.
 - **Tooling.** Skeleton copied from `xrm-plain-number` rather than
   `pac pcf init`, which pins Fluent 9.68.0 that the environment rejects.
   Playwright Test with a `webServer` entry, so `npx playwright test` is the

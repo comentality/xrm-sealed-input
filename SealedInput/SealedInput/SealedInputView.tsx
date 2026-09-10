@@ -66,14 +66,14 @@ type Slot = "first" | "second";
 /**
  * Always two fields. With a stored value and nothing typed yet, both show a
  * fixed row of dots ("stored" state); the first keystroke starts a fresh
- * entry, Backspace clears the column. The value is written the moment both
- * entries agree; the fields keep their typed dots until focus leaves, then go
- * back to the stored dots. The rules are listed in docs/usage.md under
+ * entry, Backspace clears the column. A match that passes validation is
+ * written when focus leaves the control, and the fields go back to the
+ * stored dots at that same moment, so every instance of the column on the
+ * form refreshes together. The rules are listed in docs/usage.md under
  * "Interaction rules".
  */
 export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, onCommit }) => {
   const styles = useStyles();
-  const hasStored = stored !== "";
 
   // Measure our own width and read the form's cell label around us; the form
   // cell, not the host API, decides the layout and the labels. Both are
@@ -155,10 +155,15 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   // Focus left a field while an entry was in progress: a second entry that is
   // still shorter than the first is compared too. Cleared by the next edit.
   const [checkedOnBlur, setCheckedOnBlur] = React.useState(false);
-  // The entries matched and the value was written, but the field still has
-  // focus: the typed dots stay until focus leaves. Cleared by the next edit.
-  const [pending, setPending] = React.useState(false);
+  // A value ready to write ("" for a clear), waiting for focus to leave the
+  // control; the typed dots stay until then. Cleared by the next edit.
+  const [pending, setPending] = React.useState<string | null>(null);
+  // The value this control wrote last, until the host has pushed it back.
   const committed = React.useRef<string | null>(null);
+  // What the column holds as far as this control knows: the value it just
+  // wrote counts before the host has pushed it, so the fields do not flash
+  // the old state in between.
+  const hasStored = (committed.current ?? stored) !== "";
   // The field was focused while holding an entry (or the stored dots). Only
   // retyping is allowed then: any character replaces the whole entry,
   // Backspace or Delete clears it, the caret cannot be moved into it. Reset by
@@ -177,18 +182,16 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
     setSecond("");
     setRevealed(null);
     setEditing(false);
-    setPending(false);
+    setPending(null);
     setCheckedOnBlur(false);
   };
   // Whatever the platform now holds is the truth; a fresh value ends any entry
-  // in progress. The value this control just wrote is the exception: that
-  // entry stays open until focus leaves the field.
+  // in progress. The push of the value this control just wrote changes
+  // nothing it shows.
   React.useEffect(() => {
-    if (committed.current !== null && stored === committed.current) {
-      committed.current = null;
-      return;
-    }
-    closeEntry();
+    const own = committed.current !== null && stored === committed.current;
+    committed.current = null;
+    if (!own) closeEntry();
   }, [stored]);
 
   const reveal = React.useCallback(
@@ -208,23 +211,30 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   const firstError = validateEntry(first, rules);
   const secondError = firstError ? null : validateConfirm(first, second, checkedOnBlur);
 
-  // Commit the moment both entries agree and pass validation. The entry stays
-  // open, fully masked, until focus leaves a field (see onBlur); the host's
-  // push of the new value is recognised above and does not close it either.
+  // Both entries agree and pass validation: ready to write. The write itself
+  // waits for focus to leave the control (onBlur below, or Ctrl+S in
+  // onKeyDown), fully masked meanwhile.
   React.useEffect(() => {
     if (!canCommit(first, second, rules)) return;
     window.clearTimeout(timer.current);
     setRevealed(null);
-    committed.current = first;
-    onCommit(first);
-    setEditing(true); // the entry stays open even once the host holds the value
-    setPending(true);
+    setEditing(true);
+    setPending(first);
   }, [first, second]);
 
-  // Any change to an entry: it is a fresh entry again, not the written one,
-  // and not the one focus left.
+  // Write what is ready and close the entry: the stored dots appear here, at
+  // the same moment the host learns the value.
+  const writePending = () => {
+    if (pending === null) return;
+    committed.current = pending;
+    onCommit(pending);
+    closeEntry();
+  };
+
+  // Any change to an entry: it is a fresh entry again, not the one ready to
+  // write, and not the one focus left.
   const edited = () => {
-    setPending(false);
+    setPending(null);
     setCheckedOnBlur(false);
     returned.current = null;
   };
@@ -265,10 +275,10 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           });
         } else if (e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward") {
           if (showingStored) {
-            // Backspace over the stored dots clears the column.
+            // Backspace over the stored dots clears the column, once focus leaves.
             edited();
             setEditing(true);
-            onCommit("");
+            setPending("");
             return;
           }
           setRevealed(null);
@@ -290,7 +300,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   // retype-only mode: the selection is kept whole (mouse clicks and the
   // select event), the caret keys are swallowed, and beforeinput above
   // replaces or clears the whole entry. Leaving a field compares the entries
-  // at once, and closes an entry whose value has already been written.
+  // at once; leaving the control writes a value that is ready.
   const CARET_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
   const wholeSelection = (el: HTMLInputElement) => el.selectionStart === 0 && el.selectionEnd === el.value.length;
   const focusHandlers = (slot: Slot) => ({
@@ -318,13 +328,18 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
         secondRef.current?.focus();
         return;
       }
+      // The form's save shortcut, with focus still here: write first, so the
+      // save takes the value. The event goes on to the form.
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") writePending();
       if (returned.current === slot && CARET_KEYS.includes(e.key)) e.preventDefault();
     },
-    onBlur: () => {
+    onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
       returned.current = null;
       setRevealed(null);
-      if (pending) closeEntry();
-      else if (state === "entering") setCheckedOnBlur(true);
+      const toOtherField = e.relatedTarget === firstRef.current || e.relatedTarget === secondRef.current;
+      if (pending !== null) {
+        if (!toOtherField) writePending();
+      } else if (state === "entering") setCheckedOnBlur(true);
     },
   });
 
@@ -354,7 +369,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
       data-testid="sealed-entry"
       data-layout={side ? "side-by-side" : "stacked"}
       data-state={state}
-      data-pending={pending ? "true" : undefined}
+      data-pending={pending !== null ? "true" : undefined}
       data-labels={labels.first === null ? "reenter-only" : "both"}
       data-label-position={labels.secondInline ? "inline" : "above"}
       data-form-label={formLabel === null ? "none" : formLabel.shown ? "shown" : "hidden"}

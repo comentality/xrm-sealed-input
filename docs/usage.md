@@ -70,18 +70,21 @@ while an entry is in progress, to clear both.
 
 ![side by side mismatch](img/layout-wide-mismatch.png)
 
-The moment both entries agree the value is written to the column. The field
-keeps its typed dots while it has focus; when focus leaves, both fields switch
-to a fixed row of eight dots, whatever the length of the value, so a stored
-value gives nothing away. Save the record as usual.
+Once both entries agree the value is ready. It is written to the column when
+focus leaves the control, and at that same moment both fields switch to a
+fixed row of eight dots, whatever the length of the value, so a stored value
+gives nothing away. Until then the typed dots stay. If the same column is on
+the form more than once, every copy refreshes together. Save the record as
+usual; Ctrl+S with focus still in the field writes the value first.
 
 ![eight dots in both fields and a saved note](img/stored-saved.png)
 
 Opening a record that already has a value shows the same two rows of dots. The
 value itself is never rendered. To **replace** it, click into either field and
 type: both fields clear and a fresh entry begins. To **clear** it, click into a
-field and press Backspace: the column is emptied at once. **Start over** during
-a replacement goes back to the stored dots without changing anything.
+field and press Backspace: both fields empty, and the column is cleared when
+focus leaves the control. **Start over** during a replacement goes back to the
+stored dots without changing anything.
 
 | Existing value | After the first keystroke |
 |---|---|
@@ -139,13 +142,19 @@ The rules the control follows, kept as one list. Each has a harness test.
   entries at once; a second entry that is shorter than the first is flagged
   too. An empty second entry is not flagged. The next edit makes it quiet
   again until it is long enough or focus leaves again.
-- **Storing.** The moment both entries agree and pass validation, the value is
-  written to the column. The field keeps its typed dots while it has focus.
-  When focus leaves, both fields switch to a fixed row of eight dots.
+- **Storing.** Once both entries agree and pass validation the value is
+  ready. It is written to the column when focus leaves the control (moving
+  between the two fields does not count), and both fields switch to a fixed
+  row of eight dots at that same moment, so other copies of the column on the
+  form refresh together with this one. The typed dots stay until then.
+  Ctrl+S or Cmd+S with focus still in a field writes the value before the
+  form saves. An edit before focus leaves makes the entry a fresh one; nothing
+  is written.
 - **A stored value.** Both fields show eight dots, whatever the length; the
   value is never rendered. Focusing a field selects the dots. Typing starts a
   fresh entry in that field and empties the other; Backspace over the dots
-  clears the column at once.
+  empties both fields, and the column is cleared when focus leaves the
+  control.
 - **Start over.** A small link under the fields while an entry is in
   progress. It discards both entries: back to the stored dots, or to empty
   fields.

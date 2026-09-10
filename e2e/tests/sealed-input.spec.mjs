@@ -225,9 +225,10 @@ test.describe('confirmation and storing', () => {
     // Fixing the second entry clears the error and stores.
     await page.keyboard.press('Backspace');
     await page.keyboard.type('4');
-    await expect(harnessValue(page)).toHaveValue('1234');
+    await expect(harnessValue(page)).toHaveValue(''); // written when focus leaves the control
     await c.second.blur();
     await expect(c.stored).toBeVisible();
+    await expect(harnessValue(page)).toHaveValue('1234');
   });
 
   test('leaving a field compares the entries at once, even a shorter second one', async ({ page }) => {
@@ -246,6 +247,7 @@ test.describe('confirmation and storing', () => {
     await page.keyboard.type('1');
     await expect(c.errors).toHaveCount(0);
     await page.keyboard.type('234');
+    await c.second.blur();
     await expect(harnessValue(page)).toHaveValue('1234');
 
     // Leaving the first field compares too: Enter moves on with a wrong second entry in place.
@@ -261,18 +263,23 @@ test.describe('confirmation and storing', () => {
     await expect(c.errors).toHaveText(['Does not match the first entry.']);
   });
 
-  test('a match stores the value at once and collapses to hidden dots when focus leaves', async ({ page }) => {
+  test('a match is written when focus leaves the control, and collapses to hidden dots then', async ({ page }) => {
     const c = await openHarness(page, { revealMs: 0 });
     await c.first.click();
     await page.keyboard.type('00123456789');
     await page.keyboard.press('Enter');
     await page.keyboard.type('00123456789');
-    // Written already, but the typed dots stay while the field has focus.
-    await expect(harnessValue(page)).toHaveValue('00123456789');
+    // Ready, but not written while the control has focus: the typed dots stay.
     await expect(c.entry).toHaveAttribute('data-pending', 'true');
+    await expect(harnessValue(page)).toHaveValue('');
     await expect(c.second).toHaveValue(dots(11));
-    await expect(c.second).toBeFocused();
-    await c.second.blur();
+    // Moving to the other field is still inside the control.
+    await c.first.click();
+    await expect(c.first).toBeFocused();
+    await expect(harnessValue(page)).toHaveValue('');
+    await expect(c.entry).toHaveAttribute('data-pending', 'true');
+    await c.first.blur();
+    await expect(harnessValue(page)).toHaveValue('00123456789');
     await expect(c.stored).toBeVisible();
     await expect(c.hint).toHaveCount(0);
     // Fixed-width dots in both fields: neither the value nor its length shows.
@@ -370,10 +377,25 @@ test.describe('confirmation and storing', () => {
     const c = await openHarness(page, { value: 'secret123' });
     await c.first.click();
     await page.keyboard.press('Backspace');
+    await expect(c.entry).toHaveAttribute('data-state', 'empty');
+    await expect(harnessValue(page)).toHaveValue('secret123'); // cleared when focus leaves the control
+    await c.first.blur();
     await expect(harnessValue(page)).toHaveValue('');
     await expect(c.entry).toHaveAttribute('data-state', 'empty');
     await expect(c.first).toHaveValue('');
     await expect(c.second).toHaveValue('');
+  });
+
+  test('Ctrl+S writes a ready value before the form saves', async ({ page }) => {
+    const c = await openHarness(page, { revealMs: 0 });
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('1234');
+    await expect(harnessValue(page)).toHaveValue('');
+    await page.keyboard.press('Control+S');
+    await expect(harnessValue(page)).toHaveValue('1234');
+    await expect(c.stored).toBeVisible();
   });
 });
 
