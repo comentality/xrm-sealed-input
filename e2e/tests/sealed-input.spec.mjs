@@ -6,11 +6,11 @@ const GOOD_SIN = '046454286';
 const BAD_SIN = '046454287';
 
 test.describe('entry', () => {
-  test('an empty column shows two fields and the hint', async ({ page }) => {
+  test('an empty column shows two fields and nothing else', async ({ page }) => {
     const c = await openHarness(page);
     await expect(c.first).toBeVisible();
     await expect(c.second).toBeVisible();
-    await expect(c.hint).toHaveText('Type it twice. Pasting is off.');
+    await expect(c.hint).toHaveCount(0);
     await expect(c.startOver).toHaveCount(0);
     await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
     await shot(page, 'entry-empty');
@@ -100,7 +100,29 @@ test.describe('entry', () => {
     await expect(c.first).toHaveValue(dots(4));
   });
 
-  test('Start over clears both fields', async ({ page }) => {
+  test('coming back to a field selects its entry, so typing replaces it and Backspace clears it', async ({ page }) => {
+    const c = await openHarness(page, { revealMs: 60_000 });
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await c.second.click();
+    await page.keyboard.type('56');
+    // Back into the first field by mouse: the entry is selected, not appended to.
+    await c.first.click();
+    await expect(c.first).toHaveJSProperty('selectionStart', 0);
+    await expect(c.first).toHaveJSProperty('selectionEnd', 4);
+    await page.keyboard.type('9');
+    await expect(c.first).toHaveValue('9');
+    // Back into the second field by keyboard, same thing.
+    await page.keyboard.press('Enter');
+    await expect(c.second).toBeFocused();
+    await expect(c.second).toHaveJSProperty('selectionEnd', 2);
+    await page.keyboard.press('Backspace');
+    await expect(c.second).toHaveValue('');
+    await page.keyboard.type('7');
+    await expect(c.second).toHaveValue('7');
+  });
+
+  test('Start over is a small link under the fields and clears both', async ({ page }) => {
     const c = await openHarness(page, { revealMs: 0 });
     await c.first.click();
     await page.keyboard.type('12');
@@ -197,7 +219,7 @@ test.describe('confirmation and storing', () => {
     await page.keyboard.press('Enter');
     await page.keyboard.type('00123456789');
     await expect(c.stored).toBeVisible();
-    await expect(c.hint).toContainText('Entered twice and stored');
+    await expect(c.hint).toHaveCount(0);
     await expect(harnessValue(page)).toHaveValue('00123456789');
     // Fixed-width dots in both fields: neither the value nor its length shows.
     await expect(c.first).toHaveValue(dots(8));
@@ -212,7 +234,7 @@ test.describe('confirmation and storing', () => {
     await expect(c.first).toHaveValue(dots(8));
     await expect(c.second).toHaveValue(dots(8));
     await expect(c.container).not.toContainText('secret123');
-    await expect(c.hint).toHaveText('Stored. Type to replace, Backspace to clear.');
+    await expect(c.hint).toHaveCount(0);
     await shot(page, 'stored');
   });
 

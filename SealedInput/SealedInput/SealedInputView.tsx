@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button, Field, Input, Text, makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
+import { Field, Input, Link, makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
 import {
   FormLabel,
   Layout,
@@ -33,7 +33,7 @@ export interface ISealedInputViewProps {
 
 const useStyles = makeStyles({
   root: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS, width: "100%", textAlign: "left" },
-  row: { display: "flex", alignItems: "center", columnGap: tokens.spacingHorizontalS, minHeight: "20px" },
+  row: { display: "flex", alignItems: "center", columnGap: tokens.spacingHorizontalS },
   fields: { display: "flex", flexDirection: "column", rowGap: tokens.spacingVerticalS },
   fieldsSide: { flexDirection: "row", alignItems: "flex-start", columnGap: tokens.spacingHorizontalM },
   field: { flex: "1 1 0", minWidth: 0 },
@@ -44,7 +44,8 @@ const useStyles = makeStyles({
   // <input> keeps otherwise and overflows a narrow cell with.
   fieldInline: { gridTemplateColumns: "auto minmax(0, 1fr)", paddingLeft: 0 },
   labelText: { whiteSpace: "nowrap" },
-  hint: { color: tokens.colorNeutralForeground3 },
+  // Start over: a small link under the fields, the size of a Field hint.
+  startOver: { fontSize: tokens.fontSizeBase200, lineHeight: tokens.lineHeightBase200 },
   input: { width: "100%", minWidth: 0 },
 });
 
@@ -149,7 +150,6 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   const [second, setSecond] = React.useState("");
   const [revealed, setRevealed] = React.useState<Slot | null>(null);
   const [editing, setEditing] = React.useState(false); // false with a stored value = showing the dots
-  const [justSaved, setJustSaved] = React.useState(false);
 
   const firstRef = React.useRef<HTMLInputElement>(null);
   const secondRef = React.useRef<HTMLInputElement>(null);
@@ -190,7 +190,6 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
     if (!canCommit(first, second, rules)) return;
     window.clearTimeout(timer.current);
     setRevealed(null);
-    setJustSaved(true);
     onCommit(first);
     setFirst("");
     setSecond("");
@@ -206,11 +205,13 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
       const onBeforeInput = (e: InputEvent) => {
         e.preventDefault();
         if (disabled) return;
+        // The whole entry is selected (focus selects it): typing replaces it,
+        // Backspace clears it. An entry is never added to after coming back.
+        const allSelected = el.value.length > 0 && el.selectionStart === 0 && el.selectionEnd === el.value.length;
         if (e.inputType === "insertText" && e.data) {
           const typed = e.data;
           if (showingStored) {
             // First keystroke over the stored dots: start a fresh entry in this field.
-            setJustSaved(false);
             setEditing(true);
             setFirst(slot === "first" ? append("", typed, rules) : "");
             setSecond(slot === "second" ? append("", typed, rules) : "");
@@ -218,20 +219,19 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
             return;
           }
           setValue((v) => {
-            const next = append(v, typed, rules);
+            const next = append(allSelected ? "" : v, typed, rules);
             if (next !== v) reveal(slot);
             return next;
           });
         } else if (e.inputType === "deleteContentBackward") {
           if (showingStored) {
             // Backspace over the stored dots clears the column.
-            setJustSaved(false);
             setEditing(true);
             onCommit("");
             return;
           }
           setRevealed(null);
-          setValue(backspace);
+          setValue(allSelected ? () => "" : backspace);
         }
       };
       el.addEventListener("beforeinput", onBeforeInput);
@@ -240,6 +240,26 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   };
   useSealed(firstRef, "first", setFirst);
   useSealed(secondRef, "second", setSecond);
+
+  // Focus selects whatever the field shows, so the next keystroke replaces
+  // it. The mouseup that follows a click would collapse that selection to a
+  // caret; the first one after a focus is swallowed.
+  const selectedOnFocus = React.useRef<Slot | null>(null);
+  const focusHandlers = (slot: Slot) => ({
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
+      e.currentTarget.select();
+      selectedOnFocus.current = slot;
+    },
+    onMouseUp: (e: React.MouseEvent<HTMLInputElement>) => {
+      if (selectedOnFocus.current !== slot) return;
+      selectedOnFocus.current = null;
+      e.preventDefault();
+    },
+    onBlur: () => {
+      selectedOnFocus.current = null;
+      setRevealed(null);
+    },
+  });
 
   const block = (e: React.SyntheticEvent) => e.preventDefault();
   const blocked = {
@@ -267,13 +287,6 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   };
 
   const shown = (value: string, slot: Slot) => (showingStored ? STORED_DOTS : display(value, revealed === slot));
-  const hint = disabled
-    ? ""
-    : showingStored
-      ? justSaved
-        ? "Entered twice and stored. Save the record to keep it."
-        : "Stored. Type to replace, Backspace to clear."
-      : "Type it twice. Pasting is off.";
 
   return (
     <div
@@ -302,8 +315,8 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
             value={shown(first, "first")}
             disabled={disabled}
             onChange={() => undefined}
-            onBlur={() => setRevealed(null)}
             onKeyDown={onKeyDown("first")}
+            {...focusHandlers("first")}
             appearance="filled-darker"
             className={styles.input}
             aria-label={label}
@@ -327,7 +340,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
             value={shown(second, "second")}
             disabled={disabled}
             onChange={() => undefined}
-            onBlur={() => setRevealed(null)}
+            {...focusHandlers("second")}
             appearance="filled-darker"
             className={styles.input}
             aria-label={`Re-enter ${label}`}
@@ -337,16 +350,11 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           />
         </Field>
       </div>
-      {!disabled && (
+      {!disabled && state === "entering" && (
         <div className={styles.row}>
-          {state === "entering" && (
-            <Button size="small" appearance="subtle" onClick={startOver} data-testid="sealed-startover">
-              Start over
-            </Button>
-          )}
-          <Text size={200} className={styles.hint} data-testid="sealed-hint">
-            {hint}
-          </Text>
+          <Link as="button" type="button" onClick={startOver} className={styles.startOver} data-testid="sealed-startover">
+            Start over
+          </Link>
         </div>
       )}
     </div>

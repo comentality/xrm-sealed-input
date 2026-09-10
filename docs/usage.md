@@ -37,7 +37,8 @@ column back through the Web API to confirm it holds exactly what was typed.
 
 ## What the user sees
 
-Always two fields. An empty column shows them empty, with a hint.
+Always two fields. An empty column shows them empty. There is no hint text;
+the labels say what to do.
 
 ![empty: SIN and Re-enter SIN fields](img/entry-empty.png)
 
@@ -56,9 +57,12 @@ the cell, so the same control stacks on a phone or in a narrow section.
 |---|---|
 | ![stacked](img/layout-narrow.png) | ![side by side](img/layout-wide.png) |
 
-Enter, or Tab, moves to the second field. When the second entry is as long as
-the first and differs, the control says so under the second field. Nothing is
-stored. Backspace and retype, or **Start over** to clear both fields.
+Enter, or Tab, moves to the second field. Coming back into a field that
+already holds an entry selects the entry, so the next keystroke replaces it
+and Backspace clears it; an entry is never added to after leaving the field.
+When the second entry is as long as the first and differs, the control says
+so under the second field. Nothing is stored. Retype, or **Start over**, a
+small link under the fields while an entry is in progress, to clear both.
 
 ![Does not match the first entry](img/entry-mismatch.png)
 

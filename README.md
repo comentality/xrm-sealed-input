@@ -110,6 +110,14 @@ Each of these was an open question in the first README.
   label as a `<label>` whose id ends in `-field-label`; left vs above is
   decided from bounding boxes, and a hidden label borrows the position from a
   sibling cell. Outside such a container (the harness) it is "hidden, above".
+- **Interaction (2026-09-09, later that evening, on the user's call).** Focus
+  selects the field's entry (or the stored dots), so typing replaces and
+  Backspace clears; an entry is never appended to after coming back into
+  the field. The mouseup after a click would collapse the selection, so the
+  first one after a focus is swallowed. Start over is a small Fluent Link
+  under the fields, shown only while an entry is in progress; the hint text
+  ("Type it twice. Pasting is off." and the stored variants) is gone, which
+  also puts the control at the stock field height when idle.
 - **Tooling.** Skeleton copied from `xrm-plain-number` rather than
   `pac pcf init`, which pins Fluent 9.68.0 that the environment rejects.
   Playwright Test with a `webServer` entry, so `npx playwright test` is the
