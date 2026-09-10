@@ -6,6 +6,25 @@ is stored. Made for bank account numbers and Social Insurance Numbers.
 **[How to use it](docs/usage.md)**, with screenshots. Built under the
 comentality org.
 
+## Install
+
+Import `xrm-sealed-input-<version>-managed.zip` (or the unmanaged zip) from a
+[release](https://github.com/comentality/xrm-sealed-input/releases), then add
+Sealed Input to a text column on a form. [docs/usage.md](docs/usage.md) has the
+maker-side steps and the full list of interaction rules.
+
+## Vendor instead
+
+The control is five files in one folder. Copy them into your own solution:
+
+```
+npx degit comentality/xrm-sealed-input/SealedInput/SealedInput   SealedInput/SealedInput
+```
+
+[VENDORING.md](VENDORING.md) says what each file is, how to build a project
+around them, and what to change to make the rules your own. Public domain,
+CC0 1.0, no attribution required.
+
 ## Goal
 
 In the user's words: a PCF control for input of sensitive data. The user cannot
