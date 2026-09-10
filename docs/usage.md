@@ -58,19 +58,22 @@ the cell, so the same control stacks on a phone or in a narrow section.
 | ![stacked](img/layout-narrow.png) | ![side by side](img/layout-wide.png) |
 
 Enter, or Tab, moves to the second field. Coming back into a field that
-already holds an entry selects the entry, so the next keystroke replaces it
-and Backspace clears it; an entry is never added to after leaving the field.
-When the second entry is as long as the first and differs, the control says
-so under the second field. Nothing is stored. Retype, or **Start over**, a
-small link under the fields while an entry is in progress, to clear both.
+already holds an entry selects the entry, and from then on only retyping is
+possible: the next keystroke replaces it, Backspace clears it, and no part of
+it can be removed. When the second entry is as long as the first and differs,
+the control says so under the second field; leaving either field compares
+the entries at once, a shorter second entry included. Nothing is stored
+until they agree. Retype, or **Start over**, a small link under the fields
+while an entry is in progress, to clear both.
 
 ![Does not match the first entry](img/entry-mismatch.png)
 
 ![side by side mismatch](img/layout-wide-mismatch.png)
 
-The moment both entries agree the value is written to the column and both
-fields switch to a fixed row of eight dots, whatever the length of the value,
-so a stored value gives nothing away. Save the record as usual.
+The moment both entries agree the value is written to the column. The field
+keeps its typed dots while it has focus; when focus leaves, both fields switch
+to a fixed row of eight dots, whatever the length of the value, so a stored
+value gives nothing away. Save the record as usual.
 
 ![eight dots in both fields and a saved note](img/stored-saved.png)
 
@@ -110,6 +113,47 @@ setting for the wording, which labels go, or where they sit.
 | Cell label hidden | Cell label hidden, wide label column in a narrow cell |
 |---|---|
 | ![both labels beside the fields, the first in the form's label column](img/labels-form-hidden.png) | ![the inputs shrink rather than overflow](img/labels-form-hidden-narrow.png) |
+
+## Interaction rules
+
+The rules the control follows, kept as one list. Each has a harness test.
+
+- **Two fields, always.** The column's name and "Re-enter" it. Enter or Tab
+  moves from the first to the second. Labels follow the form, see above.
+- **Typing.** The character just typed stays readable for the reveal time
+  (one second by default), then becomes a dot; everything before it is a dot.
+  Leaving the field masks the last character at once. Only allowed characters
+  are taken (digits by default); the rest are dropped. Backspace while typing
+  removes the last character.
+- **Nothing gets in from outside.** Paste, drop, cut, copy, the context menu,
+  autofill and password managers are blocked on both fields.
+- **Coming back to a field.** Focusing a field that holds an entry, by mouse
+  or keyboard, selects the whole entry. From then on only retyping is
+  possible: any character replaces the entry, Backspace or Delete clears it,
+  the caret cannot be moved into it, clicks and shift-selection keep it whole.
+  An entry is never added to after leaving the field.
+- **Comparison while typing.** As soon as the second entry is as long as the
+  first and differs, "Does not match the first entry." appears under the
+  second field. It goes away the moment they agree.
+- **Comparison on leaving a field.** Leaving either field compares the
+  entries at once; a second entry that is shorter than the first is flagged
+  too. An empty second entry is not flagged. The next edit makes it quiet
+  again until it is long enough or focus leaves again.
+- **Storing.** The moment both entries agree and pass validation, the value is
+  written to the column. The field keeps its typed dots while it has focus.
+  When focus leaves, both fields switch to a fixed row of eight dots.
+- **A stored value.** Both fields show eight dots, whatever the length; the
+  value is never rendered. Focusing a field selects the dots. Typing starts a
+  fresh entry in that field and empties the other; Backspace over the dots
+  clears the column at once.
+- **Start over.** A small link under the fields while an entry is in
+  progress. It discards both entries: back to the stored dots, or to empty
+  fields.
+- **Validation.** Canadian SIN: nine digits with a valid checksum; the error
+  shows under the first field once nine digits are in, typing stops at nine,
+  and nothing is stored until it passes. Maximum length caps typing.
+- **Read-only.** Both fields disabled, showing the dots or nothing.
+- **No hint text.** The labels and the errors are all the control says.
 
 ## Configuration
 

@@ -66,8 +66,10 @@ type Slot = "first" | "second";
 /**
  * Always two fields. With a stored value and nothing typed yet, both show a
  * fixed row of dots ("stored" state); the first keystroke starts a fresh
- * entry, Backspace clears the column. The value is written when both entries
- * agree; the fields then go back to the stored dots.
+ * entry, Backspace clears the column. The value is written the moment both
+ * entries agree; the fields keep their typed dots until focus leaves, then go
+ * back to the stored dots. The rules are listed in docs/usage.md under
+ * "Interaction rules".
  */
 export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, onCommit }) => {
   const styles = useStyles();
@@ -150,6 +152,18 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   const [second, setSecond] = React.useState("");
   const [revealed, setRevealed] = React.useState<Slot | null>(null);
   const [editing, setEditing] = React.useState(false); // false with a stored value = showing the dots
+  // Focus left a field while an entry was in progress: a second entry that is
+  // still shorter than the first is compared too. Cleared by the next edit.
+  const [checkedOnBlur, setCheckedOnBlur] = React.useState(false);
+  // The entries matched and the value was written, but the field still has
+  // focus: the typed dots stay until focus leaves. Cleared by the next edit.
+  const [pending, setPending] = React.useState(false);
+  const committed = React.useRef<string | null>(null);
+  // The field was focused while holding an entry (or the stored dots). Only
+  // retyping is allowed then: any character replaces the whole entry,
+  // Backspace or Delete clears it, the caret cannot be moved into it. Reset by
+  // that edit, or by leaving the field.
+  const returned = React.useRef<Slot | null>(null);
 
   const firstRef = React.useRef<HTMLInputElement>(null);
   const secondRef = React.useRef<HTMLInputElement>(null);
@@ -158,12 +172,23 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   const showingStored = hasStored && !editing;
   const state = showingStored ? "stored" : first.length + second.length > 0 ? "entering" : "empty";
 
-  // Whatever the platform now holds is the truth; a fresh value ends any entry in progress.
-  React.useEffect(() => {
+  const closeEntry = () => {
     setFirst("");
     setSecond("");
     setRevealed(null);
     setEditing(false);
+    setPending(false);
+    setCheckedOnBlur(false);
+  };
+  // Whatever the platform now holds is the truth; a fresh value ends any entry
+  // in progress. The value this control just wrote is the exception: that
+  // entry stays open until focus leaves the field.
+  React.useEffect(() => {
+    if (committed.current !== null && stored === committed.current) {
+      committed.current = null;
+      return;
+    }
+    closeEntry();
   }, [stored]);
 
   const reveal = React.useCallback(
@@ -181,20 +206,28 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   React.useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const firstError = validateEntry(first, rules);
-  const secondError = firstError ? null : validateConfirm(first, second);
+  const secondError = firstError ? null : validateConfirm(first, second, checkedOnBlur);
 
-  // Commit the moment both entries agree and pass validation. The entry is
-  // closed here as well as in the reset effect above: when the new value equals
-  // the stored one the host has nothing to push, and the effect would not run.
+  // Commit the moment both entries agree and pass validation. The entry stays
+  // open, fully masked, until focus leaves a field (see onBlur); the host's
+  // push of the new value is recognised above and does not close it either.
   React.useEffect(() => {
     if (!canCommit(first, second, rules)) return;
     window.clearTimeout(timer.current);
     setRevealed(null);
+    committed.current = first;
     onCommit(first);
-    setFirst("");
-    setSecond("");
-    setEditing(false);
+    setEditing(true); // the entry stays open even once the host holds the value
+    setPending(true);
   }, [first, second]);
+
+  // Any change to an entry: it is a fresh entry again, not the written one,
+  // and not the one focus left.
+  const edited = () => {
+    setPending(false);
+    setCheckedOnBlur(false);
+    returned.current = null;
+  };
 
   // Native beforeinput is the one place every edit path goes through: keys, IME,
   // paste, drop, autofill. Everything is cancelled; state decides what is shown.
@@ -205,33 +238,45 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
       const onBeforeInput = (e: InputEvent) => {
         e.preventDefault();
         if (disabled) return;
-        // The whole entry is selected (focus selects it): typing replaces it,
-        // Backspace clears it. An entry is never added to after coming back.
+        // Back in a field that held an entry, or the whole entry selected:
+        // typing replaces it, Backspace clears it. Never added to.
         const allSelected = el.value.length > 0 && el.selectionStart === 0 && el.selectionEnd === el.value.length;
+        const replaceAll = returned.current === slot || allSelected;
         if (e.inputType === "insertText" && e.data) {
           const typed = e.data;
           if (showingStored) {
             // First keystroke over the stored dots: start a fresh entry in this field.
+            const fresh = append("", typed, rules);
+            if (fresh === "") return;
+            edited();
             setEditing(true);
-            setFirst(slot === "first" ? append("", typed, rules) : "");
-            setSecond(slot === "second" ? append("", typed, rules) : "");
+            setFirst(slot === "first" ? fresh : "");
+            setSecond(slot === "second" ? fresh : "");
             reveal(slot);
             return;
           }
           setValue((v) => {
-            const next = append(allSelected ? "" : v, typed, rules);
-            if (next !== v) reveal(slot);
+            const next = append(replaceAll ? "" : v, typed, rules);
+            if (next !== v) {
+              edited();
+              reveal(slot);
+            }
             return next;
           });
-        } else if (e.inputType === "deleteContentBackward") {
+        } else if (e.inputType === "deleteContentBackward" || e.inputType === "deleteContentForward") {
           if (showingStored) {
             // Backspace over the stored dots clears the column.
+            edited();
             setEditing(true);
             onCommit("");
             return;
           }
           setRevealed(null);
-          setValue(allSelected ? () => "" : backspace);
+          setValue((v) => {
+            const next = replaceAll ? "" : backspace(v);
+            if (next !== v) edited();
+            return next;
+          });
         }
       };
       el.addEventListener("beforeinput", onBeforeInput);
@@ -241,23 +286,45 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   useSealed(firstRef, "first", setFirst);
   useSealed(secondRef, "second", setSecond);
 
-  // Focus selects whatever the field shows, so the next keystroke replaces
-  // it. The mouseup that follows a click would collapse that selection to a
-  // caret; the first one after a focus is swallowed.
-  const selectedOnFocus = React.useRef<Slot | null>(null);
+  // Focus on a field that shows something selects all of it and starts the
+  // retype-only mode: the selection is kept whole (mouse clicks and the
+  // select event), the caret keys are swallowed, and beforeinput above
+  // replaces or clears the whole entry. Leaving a field compares the entries
+  // at once, and closes an entry whose value has already been written.
+  const CARET_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
+  const wholeSelection = (el: HTMLInputElement) => el.selectionStart === 0 && el.selectionEnd === el.value.length;
   const focusHandlers = (slot: Slot) => ({
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
-      e.currentTarget.select();
-      selectedOnFocus.current = slot;
+      const el = e.currentTarget;
+      if (el.value.length === 0) return;
+      el.select();
+      returned.current = slot;
+    },
+    onMouseDown: (e: React.MouseEvent<HTMLInputElement>) => {
+      // A click inside the already focused field would place a caret.
+      if (returned.current === slot && document.activeElement === e.currentTarget) e.preventDefault();
     },
     onMouseUp: (e: React.MouseEvent<HTMLInputElement>) => {
-      if (selectedOnFocus.current !== slot) return;
-      selectedOnFocus.current = null;
-      e.preventDefault();
+      // The mouseup after the focusing click would collapse the selection.
+      if (returned.current === slot) e.preventDefault();
+    },
+    onSelect: (e: React.SyntheticEvent<HTMLInputElement>) => {
+      const el = e.currentTarget;
+      if (returned.current === slot && !wholeSelection(el)) el.select();
+    },
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && slot === "first") {
+        e.preventDefault();
+        secondRef.current?.focus();
+        return;
+      }
+      if (returned.current === slot && CARET_KEYS.includes(e.key)) e.preventDefault();
     },
     onBlur: () => {
-      selectedOnFocus.current = null;
+      returned.current = null;
       setRevealed(null);
+      if (pending) closeEntry();
+      else if (state === "entering") setCheckedOnBlur(true);
     },
   });
 
@@ -269,13 +336,6 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
     onDrop: block,
     onDragStart: block,
     onContextMenu: block,
-  };
-
-  const onKeyDown = (slot: Slot) => (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && slot === "first") {
-      e.preventDefault();
-      secondRef.current?.focus();
-    }
   };
 
   const startOver = () => {
@@ -294,6 +354,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
       data-testid="sealed-entry"
       data-layout={side ? "side-by-side" : "stacked"}
       data-state={state}
+      data-pending={pending ? "true" : undefined}
       data-labels={labels.first === null ? "reenter-only" : "both"}
       data-label-position={labels.secondInline ? "inline" : "above"}
       data-form-label={formLabel === null ? "none" : formLabel.shown ? "shown" : "hidden"}
@@ -315,7 +376,6 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
             value={shown(first, "first")}
             disabled={disabled}
             onChange={() => undefined}
-            onKeyDown={onKeyDown("first")}
             {...focusHandlers("first")}
             appearance="filled-darker"
             className={styles.input}
@@ -352,7 +412,19 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
       </div>
       {!disabled && state === "entering" && (
         <div className={styles.row}>
-          <Link as="button" type="button" onClick={startOver} className={styles.startOver} data-testid="sealed-startover">
+          <Link
+            as="button"
+            type="button"
+            // On mousedown, and without taking focus: the blur would show the
+            // mismatch message first and move this link from under the pointer.
+            onMouseDown={(e) => {
+              e.preventDefault();
+              startOver();
+            }}
+            onClick={startOver}
+            className={styles.startOver}
+            data-testid="sealed-startover"
+          >
             Start over
           </Link>
         </div>

@@ -120,6 +120,23 @@ test.describe('entry', () => {
     await expect(c.second).toHaveValue('');
     await page.keyboard.type('7');
     await expect(c.second).toHaveValue('7');
+
+    // Back in a field, only retyping: the caret keys and a second click keep
+    // the whole entry selected, and Backspace clears all of it.
+    await c.first.click();
+    await c.first.click();
+    await expect(c.first).toHaveJSProperty('selectionStart', 0);
+    await expect(c.first).toHaveJSProperty('selectionEnd', 1);
+    await page.keyboard.type('123');
+    await expect(c.first).toHaveValue(dots(2) + '3');
+    await c.second.click();
+    await c.first.click();
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('End');
+    await expect(c.first).toHaveJSProperty('selectionStart', 0);
+    await expect(c.first).toHaveJSProperty('selectionEnd', 3);
+    await page.keyboard.press('Backspace');
+    await expect(c.first).toHaveValue('');
   });
 
   test('Start over is a small link under the fields and clears both', async ({ page }) => {
@@ -208,19 +225,56 @@ test.describe('confirmation and storing', () => {
     // Fixing the second entry clears the error and stores.
     await page.keyboard.press('Backspace');
     await page.keyboard.type('4');
-    await expect(c.stored).toBeVisible();
     await expect(harnessValue(page)).toHaveValue('1234');
+    await c.second.blur();
+    await expect(c.stored).toBeVisible();
   });
 
-  test('a match stores the value and collapses to hidden dots', async ({ page }) => {
+  test('leaving a field compares the entries at once, even a shorter second one', async ({ page }) => {
+    const c = await openHarness(page, { revealMs: 0 });
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await page.keyboard.press('Enter'); // the second entry is empty: nothing to compare yet
+    await expect(c.errors).toHaveCount(0);
+    await page.keyboard.type('12');
+    await expect(c.errors).toHaveCount(0); // quiet while typing a shorter entry
+    await c.second.blur();
+    await expect(c.errors).toHaveText(['Does not match the first entry.']);
+    await expect(harnessValue(page)).toHaveValue('');
+    // Retyping the second entry: quiet again while it is shorter, stored when it matches.
+    await c.second.click();
+    await page.keyboard.type('1');
+    await expect(c.errors).toHaveCount(0);
+    await page.keyboard.type('234');
+    await expect(harnessValue(page)).toHaveValue('1234');
+
+    // Leaving the first field compares too: Enter moves on with a wrong second entry in place.
+    await openHarness(page, { revealMs: 0 });
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('99');
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await expect(c.errors).toHaveCount(0);
+    await page.keyboard.press('Enter');
+    await expect(c.errors).toHaveText(['Does not match the first entry.']);
+  });
+
+  test('a match stores the value at once and collapses to hidden dots when focus leaves', async ({ page }) => {
     const c = await openHarness(page, { revealMs: 0 });
     await c.first.click();
     await page.keyboard.type('00123456789');
     await page.keyboard.press('Enter');
     await page.keyboard.type('00123456789');
+    // Written already, but the typed dots stay while the field has focus.
+    await expect(harnessValue(page)).toHaveValue('00123456789');
+    await expect(c.entry).toHaveAttribute('data-pending', 'true');
+    await expect(c.second).toHaveValue(dots(11));
+    await expect(c.second).toBeFocused();
+    await c.second.blur();
     await expect(c.stored).toBeVisible();
     await expect(c.hint).toHaveCount(0);
-    await expect(harnessValue(page)).toHaveValue('00123456789');
     // Fixed-width dots in both fields: neither the value nor its length shows.
     await expect(c.first).toHaveValue(dots(8));
     await expect(c.second).toHaveValue(dots(8));
@@ -276,6 +330,7 @@ test.describe('confirmation and storing', () => {
     await page.keyboard.type('777');
     await page.keyboard.press('Enter');
     await page.keyboard.type('777');
+    await c.second.blur();
     await expect(c.entry).toHaveAttribute('data-state', 'stored');
     await expect(harnessValue(page)).toHaveValue('777');
   });
@@ -289,6 +344,7 @@ test.describe('confirmation and storing', () => {
     await page.keyboard.type('1');
     await page.keyboard.press('Enter');
     await page.keyboard.type('4321');
+    await c.second.blur();
     await expect(c.stored).toBeVisible();
     await c.first.click();
     await page.keyboard.type('9');
@@ -305,6 +361,7 @@ test.describe('confirmation and storing', () => {
     await page.keyboard.type('777');
     await page.keyboard.press('Enter');
     await page.keyboard.type('777');
+    await c.second.blur();
     await expect(c.stored).toBeVisible();
     await expect(harnessValue(page)).toHaveValue('777');
   });
@@ -349,6 +406,7 @@ test.describe('SIN validation', () => {
     await expect(c.errors).toHaveCount(0);
     await page.keyboard.press('Enter');
     await page.keyboard.type(GOOD_SIN);
+    await c.second.blur();
     await expect(c.stored).toBeVisible();
     await expect(harnessValue(page)).toHaveValue(GOOD_SIN);
   });
@@ -516,6 +574,7 @@ test.describe('labels', () => {
       await page.keyboard.type(GOOD_SIN);
       await page.keyboard.press('Enter');
       await page.keyboard.type(GOOD_SIN);
+      await c.second.blur();
       await expect(c.entry).toHaveAttribute('data-state', 'stored');
       expect(messages).toEqual([]);
     }

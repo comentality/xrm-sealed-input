@@ -89,9 +89,13 @@ export function validateEntry(value: string, rules: Rules): string | null {
   return null;
 }
 
-/** Error for the confirmation entry, or null. Quiet until it is as long as the first. */
-export function validateConfirm(first: string, second: string): string | null {
-  if (second.length === 0 || second.length < first.length) return null;
+/**
+ * Error for the confirmation entry, or null. Quiet while it is still shorter
+ * than the first, unless `strict`: after focus has left a field, a shorter
+ * second entry is compared too.
+ */
+export function validateConfirm(first: string, second: string, strict = false): string | null {
+  if (second.length === 0 || (!strict && second.length < first.length)) return null;
   return second === first ? null : "Does not match the first entry.";
 }
 
