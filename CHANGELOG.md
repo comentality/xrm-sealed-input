@@ -21,7 +21,7 @@
 - Ships as one solution, managed and unmanaged, plus a source zip for vendoring.
 - The vendoring steps were run end to end before release: a clean `pac pcf init` produces scaffolding identical to
   this repo's, and the five files plus the Fluent pin build on their own.
-- e2e: 30 Playwright tests against the pcf-start harness cover masking and reveal timing, every blocked input path,
+- e2e: 39 Playwright tests against the pcf-start harness cover masking and reveal timing, every blocked input path,
   mismatch, match and store, and the SIN checksum; a second run builds a fixture form in a Dataverse environment,
   types a SIN through the real control, saves it and reads the column back.
 - Limitation kept as a decision: a half-finished entry cannot block the form's save, because standard controls have
