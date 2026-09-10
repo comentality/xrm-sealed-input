@@ -107,9 +107,12 @@ export function collectConsole(page) {
  * form puts the cell label: 'left', 'top', or 'hidden' (rendered display:none,
  * with a sibling cell in the same section whose label is at `sibling`). The
  * control re-reads the DOM when its size changes, so the width is nudged.
+ * `labelWidth` is the fake label column, 120px unless said otherwise.
+ * With `width`, the control area is sized to that many pixels (the harness
+ * pane would otherwise clamp it) and the viewport widened to make room.
  */
-export async function wrapInFormCell(page, { label = 'left', sibling = 'left', text = 'SIN' } = {}) {
-  await page.evaluate(({ label, sibling, text }) => {
+export async function wrapInFormCell(page, { label = 'left', sibling = 'left', text = 'SIN', width, labelWidth = 120 } = {}) {
+  await page.evaluate(({ label, sibling, text, labelWidth }) => {
     const control = document.querySelector('.control-container');
     const parent = control.parentElement;
     const cell = (id, where, labelText, area) => {
@@ -124,7 +127,7 @@ export async function wrapInFormCell(page, { label = 'left', sibling = 'left', t
       l.id = `${id}-field-label`;
       l.textContent = labelText;
       l.style.display = where === 'hidden' ? 'none' : 'block';
-      l.style.width = where === 'top' ? 'auto' : '120px';
+      l.style.width = where === 'top' ? 'auto' : `${labelWidth}px`;
       wrap.appendChild(l);
       c.appendChild(wrap);
       const a = document.createElement('div');
@@ -143,7 +146,15 @@ export async function wrapInFormCell(page, { label = 'left', sibling = 'left', t
     section.appendChild(cell('sealed', label, text, control));
     parent.appendChild(section);
     window.__fakeSection = section;
-  }, { label, sibling, text });
+  }, { label, sibling, text, labelWidth });
+  if (width !== undefined) {
+    await page.setViewportSize({ width: Math.max(1400, width + 400), height: 800 });
+    // The fake cell adds its label column and an 8px gap on the left.
+    await page.evaluate(({ w, cw }) => {
+      document.querySelector('[data-testid="fake-section"]').style.width = `${w}px`;
+      document.querySelector('.control-container').style.width = `${cw}px`;
+    }, { w: label === 'top' ? width : width + labelWidth + 8, cw: width });
+  }
   // Nudge the size so the ResizeObserver fires and the control re-reads the DOM.
   await page.evaluate(() => { document.querySelector('.control-container').style.paddingRight = '1px'; });
 }

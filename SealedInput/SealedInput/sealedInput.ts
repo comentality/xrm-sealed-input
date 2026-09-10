@@ -111,6 +111,13 @@ export interface FormLabel {
   shown: boolean;
   /** Where the section puts cell labels; null when it could not be told. */
   position: Placement | null;
+  /**
+   * Width of the section's label column as seen from the control's left
+   * edge, in px, when the section puts labels on the left; null when unknown.
+   * A hidden cell label uses it so the first input lines up with the
+   * neighbouring cells.
+   */
+  labelWidth: number | null;
 }
 
 export interface Box {
@@ -126,23 +133,30 @@ export function labelPlacement(label: Box, control: Box): Placement {
 }
 
 export interface LabelPlan {
-  /** Label text on the first field, or null for none. */
+  /** Label text on the first field, or null when the form names the column. */
   first: string | null;
+  /** The first label sits beside its field rather than above it. */
+  firstInline: boolean;
   /** Label text on the second field. */
   second: string;
-  /** Labels sit beside the fields rather than above them. */
-  inline: boolean;
+  /** The second label sits beside its field rather than above it. */
+  secondInline: boolean;
 }
 
 /**
  * The labels to draw. `form` is what the DOM said, or null when the control
  * is not inside a form cell it recognises (the test harness); then the form
- * label counts as hidden and the position as above.
+ * label counts as hidden and the position as above. `side` is whether the
+ * two fields share a line: then an unlabelled first field next to a labelled
+ * second one would put the inputs on different lines, so the second label
+ * goes beside its input instead.
  */
-export function planLabels(label: string, form: FormLabel | null): LabelPlan {
-  const both = !(form?.shown ?? false);
+export function planLabels(label: string, form: FormLabel | null, side: boolean): LabelPlan {
+  const shown = form?.shown ?? false;
   const inline = form?.position === "inline";
-  // Beside the field, with the form already naming the column, "Re-enter" is enough.
-  const second = both || !inline ? `Re-enter ${label}` : "Re-enter";
-  return { first: both ? label : null, second, inline };
+  const secondInline = inline || (shown && side);
+  // Beside the field, with the column already named on that line by the form
+  // or by the first label, "Re-enter" is enough.
+  const second = secondInline ? "Re-enter" : `Re-enter ${label}`;
+  return { first: shown ? null : label, firstInline: inline, second, secondInline };
 }

@@ -15,7 +15,7 @@ const keep = ['entry-empty', 'entry-typing', 'entry-masked', 'entry-mismatch', '
   'label-mock-left-wide', 'label-mock-left-narrow', 'label-mock-top-narrow', 'label-mock-hidden',
   'label-mock-left-wide-phone', 'label-mock-left-narrow-phone', 'label-mock-top-narrow-phone', 'label-mock-hidden-phone',
   // Harness shots of the control inside a copy of a form cell (labels tests).
-  'labels-form-left', 'labels-form-top', 'labels-form-hidden'];
+  'labels-form-left', 'labels-form-top', 'labels-form-top-wide', 'labels-form-hidden', 'labels-form-hidden-narrow'];
 // Real-form shots from run.mjs, renamed for the manual.
 const renamed = { 'form-full-1': 'form-real-empty', 'form-typing-page': 'form-real-typing', 'form-stored-page': 'form-real-stored' };
 for (const name of keep) {

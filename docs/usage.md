@@ -89,15 +89,23 @@ When the form is read-only both fields are disabled and show eight dots, or
 nothing when the column is empty.
 
 Inside a form cell the labels follow the form. With the cell label shown on
-the left, only "Re-enter" appears, beside the second field; with the cell
-label on top, "Re-enter SIN" appears above the second field; with the cell
-label hidden, both fields are labelled, placed like the neighbouring cells.
-The fields are always named after the column's display name; there is no
+the left, only "Re-enter" appears, beside the second field. With the cell
+label on top, "Re-enter SIN" appears above the second field when the fields
+stack; when they share a line, "Re-enter" goes beside the second input so
+the two inputs stay on that line. With the cell label hidden, both fields
+are labelled, placed like the neighbouring cells, and the first label takes
+the section's own label column so the first input lines up with the stock
+fields around it. Side by side, the two inputs come out the same width. The
+fields are always named after the column's display name; there is no
 setting for the wording, which labels go, or where they sit.
 
-| Cell label on the left | Cell label on top | Cell label hidden |
+| Cell label on the left | Cell label on top, fields stacked | Cell label on top, fields side by side |
 |---|---|---|
-| ![Re-enter beside the second field](img/labels-form-left.png) | ![Re-enter SIN above the second field](img/labels-form-top.png) | ![both labels beside the fields](img/labels-form-hidden.png) |
+| ![Re-enter beside the second field](img/labels-form-left.png) | ![Re-enter SIN above the second field](img/labels-form-top.png) | ![Re-enter beside the second input](img/labels-form-top-wide.png) |
+
+| Cell label hidden | Cell label hidden, wide label column in a narrow cell |
+|---|---|
+| ![both labels beside the fields, the first in the form's label column](img/labels-form-hidden.png) | ![the inputs shrink rather than overflow](img/labels-form-hidden-narrow.png) |
 
 ## Configuration
 

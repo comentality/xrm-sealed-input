@@ -96,7 +96,16 @@ Each of these was an open question in the first README.
   and were removed the same day on the user's call: the form decides, nothing
   is configurable, and the fields are always named after the column. The DOM
   reading has no manual escape hatch; if it misreads, the fix is a new
-  version. Reading the form is DOM sniffing: the control sits in a
+  version. Alignment, from the user's review of the real form the same
+  evening: a hidden cell label makes the first label take the section's own
+  label column, measured from a sibling cell, so the first input lines up
+  with the stock fields; side by side with no first label, "Re-enter" goes
+  beside the second input rather than above it, so the inputs share a line;
+  side by side, each field grows from its label column so the two inputs
+  come out equal; the input's grid track is minmax(0, 1fr) because an
+  <input> otherwise keeps its intrinsic width and overflowed a narrow cell
+  whose section gave it a 248px label column. Reading the form is DOM
+  sniffing: the control sits in a
   container whose data-id ends in FieldSectionItemContainer, with the cell
   label as a `<label>` whose id ends in `-field-label`; left vs above is
   decided from bounding boxes, and a hidden label borrows the position from a

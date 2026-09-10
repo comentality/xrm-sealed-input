@@ -392,7 +392,7 @@ test.describe('labels', () => {
 
   test('a form label on the left leaves only Re-enter, beside the second field', async ({ page }) => {
     const c = await openHarness(page, { width: 560 });
-    await wrapInFormCell(page, { label: 'left' });
+    await wrapInFormCell(page, { label: 'left', width: 560 });
     await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
     await expect(c.entry).toHaveAttribute('data-labels', 'reenter-only');
     await expect(c.entry).toHaveAttribute('data-label-position', 'inline');
@@ -406,9 +406,9 @@ test.describe('labels', () => {
     await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-left.png` });
   });
 
-  test('a form label on top leaves only Re-enter, above the second field', async ({ page }) => {
+  test('a form label on top leaves only Re-enter SIN, above the second field when stacked', async ({ page }) => {
     const c = await openHarness(page, { width: 360 });
-    await wrapInFormCell(page, { label: 'top' });
+    await wrapInFormCell(page, { label: 'top', width: 360 });
     await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
     await expect(c.entry).toHaveAttribute('data-labels', 'reenter-only');
     await expect(c.entry).toHaveAttribute('data-label-position', 'above');
@@ -416,17 +416,68 @@ test.describe('labels', () => {
     await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-top.png` });
   });
 
-  test('a hidden form label brings both labels back, placed like the neighbouring cells', async ({ page }) => {
+  test('a form label on top with the fields side by side puts Re-enter beside the second input, on the same line', async ({ page }) => {
     const c = await openHarness(page, { width: 560 });
-    await wrapInFormCell(page, { label: 'hidden', sibling: 'left' });
+    await wrapInFormCell(page, { label: 'top', width: 560 });
+    await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
+    await expect(c.entry).toHaveAttribute('data-layout', 'side-by-side');
+    await expect(c.entry).toHaveAttribute('data-label-position', 'inline');
+    await expect(c.labels).toHaveText(['Re-enter']);
+    const first = await c.first.boundingBox();
+    const second = await c.second.boundingBox();
+    expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(first.width - second.width)).toBeLessThanOrEqual(2);
+    await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-top-wide.png` });
+  });
+
+  test('a hidden form label brings both labels back, the first in the form\'s own label column', async ({ page }) => {
+    const c = await openHarness(page, { width: 560 });
+    await wrapInFormCell(page, { label: 'hidden', sibling: 'left', width: 560 });
     await expect(c.entry).toHaveAttribute('data-form-label', 'hidden');
     await expect(c.entry).toHaveAttribute('data-labels', 'both');
     await expect(c.entry).toHaveAttribute('data-label-position', 'inline');
-    await expect(c.labels).toHaveText(['SIN', 'Re-enter SIN']);
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter']);
+    // The first input starts where the neighbouring cell's input does.
+    const neighbour = await page.locator('[data-id="sibling-FieldSectionItemContainer"] > div:nth-child(2)').boundingBox();
+    const first = await c.first.boundingBox();
+    const second = await c.second.boundingBox();
+    expect(Math.abs(first.x - neighbour.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(first.y - second.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(first.width - second.width)).toBeLessThanOrEqual(2);
+    // The second label keeps its distance from the first input.
+    const reenter = await c.labels.nth(1).boundingBox();
+    expect(reenter.x - (first.x + first.width)).toBeGreaterThanOrEqual(10);
     await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-hidden.png` });
 
+    // A wide label column in a narrow cell: the inputs shrink rather than
+    // overflow into the second label (a real form gave a narrow column a
+    // 248px label column at 542px).
+    await openHarness(page, { width: 540 });
+    await wrapInFormCell(page, { label: 'hidden', sibling: 'left', width: 540, labelWidth: 250 });
+    await expect(c.entry).toHaveAttribute('data-layout', 'side-by-side');
+    const n3 = await page.locator('[data-id="sibling-FieldSectionItemContainer"] > div:nth-child(2)').boundingBox();
+    const f3 = await c.first.boundingBox();
+    const s3 = await c.second.boundingBox();
+    const r3 = await c.labels.nth(1).boundingBox();
+    expect(Math.abs(f3.x - n3.x)).toBeLessThanOrEqual(1);
+    expect(r3.x - (f3.x + f3.width)).toBeGreaterThanOrEqual(10);
+    expect(s3.x).toBeGreaterThanOrEqual(r3.x + r3.width);
+    expect(Math.abs(f3.width - s3.width)).toBeLessThanOrEqual(2);
+    expect(f3.width).toBeGreaterThanOrEqual(60);
+    await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-hidden-narrow.png` });
+
+    // Stacked, both labels beside, in that same column.
     await openHarness(page, { width: 360 });
-    await wrapInFormCell(page, { label: 'hidden', sibling: 'top' });
+    await wrapInFormCell(page, { label: 'hidden', sibling: 'left', width: 360 });
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter']);
+    const n2 = await page.locator('[data-id="sibling-FieldSectionItemContainer"] > div:nth-child(2)').boundingBox();
+    const f2 = await c.first.boundingBox();
+    const s2 = await c.second.boundingBox();
+    expect(Math.abs(f2.x - n2.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(f2.x - s2.x)).toBeLessThanOrEqual(1);
+
+    await openHarness(page, { width: 360 });
+    await wrapInFormCell(page, { label: 'hidden', sibling: 'top', width: 360 });
     await expect(c.entry).toHaveAttribute('data-labels', 'both');
     await expect(c.entry).toHaveAttribute('data-label-position', 'above');
   });
