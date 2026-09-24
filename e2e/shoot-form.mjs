@@ -80,6 +80,37 @@ export async function shootForm(page, setup) {
 
   out.display = await snap('display');
 
+  // An entry typed once, then focus leaves: the control flags the empty
+  // second field and marks itself invalid on the form, so a save must not go
+  // through. Screenshot the cell for the form's own error mark, then read the
+  // column back: unchanged. Start over lifts the mark.
+  const before = (await webApi(page, 'GET', `contacts(${setup.contactId})?$select=${setup.sin}`)).data[setup.sin] ?? null;
+  await first.first().click();
+  await page.keyboard.type(GOOD_SIN);
+  await first.first().blur();
+  await page.locator('.fui-Field__validationMessage').first().waitFor({ timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(500);
+  out.incomplete = await snap('incomplete');
+  out.incomplete.error = await page.locator('.fui-Field__validationMessage').first().innerText().catch(() => null);
+  // The form's own view of it: which controls carry a notification, if the
+  // client API will say (getNotifications is not on every version).
+  out.incomplete.formNotifications = await page.evaluate(() => {
+    try {
+      return Xrm.Page.ui.controls
+        .get()
+        .map((c) => ({ name: c.getName(), notifications: c.getNotifications ? c.getNotifications() : undefined }))
+        .filter((c) => c.notifications === undefined || c.notifications.length > 0);
+    } catch (e) { return { error: String(e) }; }
+  });
+  await first.first().focus();
+  await page.keyboard.press('Control+S');
+  await page.waitForTimeout(4000);
+  out.incomplete.saveDialog = await page.locator('[data-id="errorDialog_subtitle"], [data-id="dialogSubtitle"]').first().innerText().catch(() => null);
+  const after = (await webApi(page, 'GET', `contacts(${setup.contactId})?$select=${setup.sin}`)).data[setup.sin] ?? null;
+  out.incomplete.columnUnchanged = after === before;
+  await page.locator('[data-testid="sealed-startover"]').first().click();
+  await page.waitForTimeout(300);
+
   // Type the SIN once, screenshot straight away so the last digit is still readable.
   await first.first().click();
   await page.keyboard.type(GOOD_SIN.slice(0, 8));

@@ -9,6 +9,18 @@
   ![SIN input under First Name's input, Re-enter and its input under Last Name's](docs/img/slice-two-columns.png)
 - e2e: the fixture form gains a two-column section with a stock row and three spanning cells, and the real-form run
   now fails when the control's boxes stray from the stock cells' by more than 2px; 40 harness tests.
+- **An entry typed only once is flagged when focus leaves the control, and the form will not save until it is fixed.**
+  "Re-enter the value to confirm." under the empty second field, or "Enter the value here first." under the empty
+  first one; a SIN shorter than nine digits is flagged then too. Every error the control shows is also set on the form
+  as a notification on the control, so the record cannot be saved, by button or by Ctrl+S, while it stands.
+  ![Re-enter SIN field outlined in red with "Re-enter the value to confirm." under it](docs/img/entry-incomplete.png)
+- **A SIN shorter than nine digits is no longer stored when typed twice.** The check before writing was as lenient
+  as the one while typing; it now insists on the full nine digits and the checksum.
+- The form is told through the page's `Xrm.Page` client API, the only route from a control to its form; where there is
+  none (the test harness, a custom page) the errors show and nothing else happens.
+- e2e: 47 tests; seven new ones cover leaving the control with one entry, the short SIN, and, with a stand-in form
+  API, that the notification is set and cleared when the error comes and goes and stands before Ctrl+S reaches the
+  form. The Dataverse run now tries to save with an unfinished entry first.
 
 ## 0.4.0 - 2026-09-09
 

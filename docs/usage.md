@@ -70,6 +70,17 @@ while an entry is in progress, to clear both.
 
 ![side by side mismatch](img/layout-wide-mismatch.png)
 
+Leaving the control with only one of the two entries typed flags the empty
+field: "Re-enter the value to confirm." under the second, or "Enter the value
+here first." under the first. With SIN validation on, a first entry shorter
+than nine digits is flagged then too. Every error the control shows is also
+set on the form as a notification on this control, so the form marks it
+invalid and will not save the record until the entry is fixed, finished, or
+started over. Ctrl+S with an unfinished entry sets that mark before the save
+runs.
+
+![Re-enter the value to confirm](img/entry-incomplete.png)
+
 Once both entries agree the value is ready. It is written to the column when
 focus leaves the control, and at that same moment both fields switch to a
 fixed row of eight dots, whatever the length of the value, so a stored value
@@ -153,8 +164,21 @@ The rules the control follows, kept as one list. Each has a harness test.
   second field. It goes away the moment they agree.
 - **Comparison on leaving a field.** Leaving either field compares the
   entries at once; a second entry that is shorter than the first is flagged
-  too. An empty second entry is not flagged. The next edit makes it quiet
-  again until it is long enough or focus leaves again.
+  too. An empty second entry is not flagged yet. The next edit makes it
+  quiet again until it is long enough or focus leaves again.
+- **Leaving the control.** Focus going outside the control (moving between
+  the two fields does not count) flags an entry made only once, on the empty
+  field: "Re-enter the value to confirm." under the second, "Enter the value
+  here first." under the first. A SIN shorter than nine digits is flagged
+  then as well. The flag stays through a return to the field and goes with
+  the next keystroke or Start over.
+- **The form is told.** Any error the control shows is set on the form as a
+  notification on this control, and cleared when the error goes, so the form
+  marks the control invalid and refuses to save while it stands. Ctrl+S or
+  Cmd+S with an unfinished entry counts as leaving the control: the flag and
+  the notification are set before the form's save runs. This goes through the
+  form's own client API on the page; where there is none (the test harness,
+  a custom page) the errors show and nothing else happens.
 - **Storing.** Once both entries agree and pass validation the value is
   ready. It is written to the column when focus leaves the control (moving
   between the two fields does not count), and both fields switch to a fixed
@@ -172,8 +196,9 @@ The rules the control follows, kept as one list. Each has a harness test.
   progress. It discards both entries: back to the stored dots, or to empty
   fields.
 - **Validation.** Canadian SIN: nine digits with a valid checksum; the error
-  shows under the first field once nine digits are in, typing stops at nine,
-  and nothing is stored until it passes. Maximum length caps typing.
+  shows under the first field once nine digits are in, or when focus leaves
+  the control with fewer; typing stops at nine, and nothing is stored until
+  it passes, however many times it is typed. Maximum length caps typing.
 - **Read-only.** Both fields disabled, showing the dots or nothing.
 - **No hint text.** The labels and the errors are all the control says.
 
@@ -234,10 +259,12 @@ Be clear about this with whoever asked for it.
 - **The clipboard block is a courtesy, not a guarantee.** It stops the everyday
   paste, drop and autofill paths. A determined person with developer tools can
   put anything into any field.
-- **A half-finished entry does not block saving.** If the person types the
-  value once and saves, the column keeps its previous value (or stays empty).
-  Standard controls cannot raise a form notification for that. If the value is
-  mandatory, mark the column required so the form insists on it.
+- **The save block needs a model-driven form.** The control marks itself
+  invalid through the form's client API (`Xrm.Page`, the page global), which
+  the control framework does not offer and custom pages do not have. Where it
+  is missing, the errors still show under the fields, but an entry typed once
+  does not stop a save: the column keeps its previous value. An empty column
+  never blocks anything; if the value is mandatory, mark the column required.
 - **The length of a value is visible while it is typed**, one dot per
   character. Only the stored view is fixed-width.
 - **Android keyboards that compose text** (swipe and predictive input) may
@@ -271,9 +298,10 @@ stored view. Blank the value in the property panel to see the entry fields.
 `e2e/` holds a Playwright Test suite that hosts the harness headlessly and
 drives the control with real keystrokes: masking and reveal timing, Backspace,
 Enter, the digit filter, the length cap, Ctrl+V and dispatched paste, drop,
-cut, copy and context-menu events, mismatch, match and store, replacing and
-clearing a stored value, the SIN checksum, and narrow and wide layout. It also
-takes the screenshots on this page.
+cut, copy and context-menu events, mismatch, match and store, an entry made
+once, replacing and clearing a stored value, the SIN checksum, narrow and wide
+layout, and what a stand-in form API is told and when. It also takes the
+screenshots on this page.
 
 ```powershell
 cd SealedInput && npm run build
@@ -292,5 +320,6 @@ node run.mjs           # afterwards: headless, reuses the saved profile
 
 `run.mjs` creates two text columns on Contact (`cmtl_sin`, `cmtl_bankaccount`),
 a Contact main form "Sealed Input E2E", and a contact "Jane Sealed Input E2E",
-then screenshots the form, types a SIN twice, saves and reads the column back.
+then screenshots the form, types a SIN once and tries to save (the column must
+stay as it was), then types it twice, saves and reads the column back.
 All fixtures are ordinary customisations and can be deleted afterwards.

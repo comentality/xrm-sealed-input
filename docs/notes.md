@@ -27,12 +27,12 @@ Dataverse column security's job; the manual says so.
   the importable solution zip; see `.claude/skills/gh-release/SKILL.md` for the
   managed/unmanaged dance and the source zip.
 - `e2e/`: Playwright Test suite against the pcf-start harness hosted headlessly
-  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 40 tests
+  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 47 tests
   covering masking and reveal timing, the digit filter and length cap, Ctrl+V
   and dispatched paste, drop, cut, copy and context-menu events, mismatch,
-  match and store, Start over, clearing, Ctrl+S, the SIN checksum, the two
-  layouts and every label situation. `npm run docs` copies the screenshots into
-  `docs/img`.
+  match and store, an entry made once, Start over, clearing, Ctrl+S, the SIN
+  checksum, the two layouts, every label situation, and what a stand-in form
+  API is told. `npm run docs` copies the screenshots into `docs/img`.
 - `e2e/mock-form.mjs`: wraps the live control in a static Contact form laid
   out like a model-driven app and screenshots it (`npm run mock`). A mock-up,
   for showing the look before the control is in an environment.
@@ -70,8 +70,8 @@ Each of these was an open question in the first README.
   beyond a length cap.
 - **When the form sees the value.** Only when both entries match and pass
   validation. Until then the column keeps its old value. A half-finished entry
-  cannot block save (standard controls have no field notification API);
-  documented as a limitation.
+  could not block save at first (the control framework has no field
+  notification API); documented as a limitation until 2026-09-24, see below.
 - **Shape (changed 2026-09-09 on the user's call).** Always two fields,
   labelled `<column>` and `Re-enter <column>` after the column's display name.
   No collapsed row, no Replace or Clear buttons. A stored
@@ -153,6 +153,33 @@ Each of these was an open question in the first README.
   first, since the form's save would otherwise miss the value. The full list
   lives in docs/usage.md under "Interaction rules" and is the place to keep
   it.
+- **Leaving the control, and the form (2026-09-24, on the user's call).**
+  Focus leaving the control with one entry typed and the other empty now
+  flags the empty field ("Re-enter the value to confirm." / "Enter the value
+  here first."); moving between the two fields does not, since Tab from a
+  typed first field to the empty second would otherwise flag the field the
+  person is arriving in. The rules function returns both fields' errors for
+  one of three focus states (inside, left a field, left the control), and
+  the flag is never stepped back down by a later blur. While at it: a SIN
+  shorter than nine digits typed twice was stored, because the commit check
+  reused the mid-typing leniency; the commit check is strict now and a short
+  SIN is flagged on leaving. And the limitation above went: every error the
+  control shows is set on the form as a control notification through the
+  page's `Xrm.Page` global (`getControl(name).setNotification(message, id)`,
+  documented to block save), cleared when the error goes, on Start over and
+  in `destroy`. The control name comes from the cell container's data-id,
+  `<control id>-FieldSectionItemContainer`, which is the id the form XML
+  gives the control (a GUID in the fixture form, `cmtl_sin` when the designer
+  names it after the column); without a container, every control bound to
+  the column. Ordering: the notification is set from a layout effect, so a
+  blur caused by a click on Save has told the form before the click lands,
+  and straight from the Ctrl+S keydown handler, before the key reaches the
+  form. `Xrm.Page` is deprecated but still on the page; there is no other
+  route from a control to its form context. The same message will show
+  twice on a real form, under the Fluent field and as the form's own
+  notification text; whether that stays is for the next real-form run to
+  settle (`shoot-form.mjs` now saves once with an unfinished entry first and
+  checks the column did not change).
 - **Tooling.** Skeleton copied from `xrm-plain-number` rather than
   `pac pcf init`, which pins Fluent 9.68.0 that the environment rejects.
   Playwright Test with a `webServer` entry, so `npx playwright test` is the

@@ -5,12 +5,14 @@ The control is five files, all in `SealedInput/SealedInput`:
 | File | What it holds |
 | --- | --- |
 | `ControlManifest.Input.xml` | the control, its bound column and its six input properties |
-| `index.ts` | the platform wiring: reads the properties, hands outputs back |
-| `sealedInput.ts` | the entry rules — masking, the digit filter, the SIN checksum, the layout and label decisions. No React, no DOM |
+| `index.ts` | the platform wiring: reads the properties, hands outputs back, and sets the control's error on the form as a notification through the page's `Xrm.Page` client API, so the form will not save |
+| `sealedInput.ts` | the entry rules — masking, the digit filter, the SIN checksum, what is flagged when, the layout and label decisions. No React, no DOM |
 | `SealedInputView.tsx` | the two fields, the Fluent styling, the input-blocking listeners |
-| `formLabel.ts` | reads the form's own cell label out of the DOM so the fields line up with the stock ones |
+| `formLabel.ts` | reads the form's own cell label and the control's name out of the DOM, so the fields line up with the stock ones and the form knows which control is complaining |
 
-Nothing in them imports outside that folder. Everything else in the project
+Nothing in them imports outside that folder; the form's client API is the
+page's `Xrm` global, looked up at run time and ignored when absent, not an
+import. Everything else in the project
 directory — `tsconfig.json`, `eslint.config.mjs`, `pcfconfig.json`,
 `.gitignore`, `SealedInput.pcfproj`, `package.json` — is byte-for-byte what
 `pac pcf init` generates, apart from the Fluent pin noted below. The code is
