@@ -1,8 +1,10 @@
 import * as React from "react";
 import { Field, Input, Link, makeStyles, mergeClasses, tokens } from "@fluentui/react-components";
 import {
+  Errors,
   FormLabel,
   Layout,
+  Left,
   Rules,
   STORED_DOTS,
   SpanColumns,
@@ -12,10 +14,9 @@ import {
   display,
   planLabels,
   sideBySide,
-  validateConfirm,
-  validateEntry,
+  validate,
 } from "./sealedInput";
-import { readFormLabel } from "./formLabel";
+import { readFormControlName, readFormLabel } from "./formLabel";
 
 export interface ISealedInputViewProps {
   /** Bound value as the platform holds it. Empty means nothing stored. */
@@ -30,6 +31,12 @@ export interface ISealedInputViewProps {
   label: string;
   /** Empty string clears; null is never sent because the platform reads it as "no change". */
   onCommit: (value: string) => void;
+  /**
+   * The error the control shows, or null once it shows none, with the name
+   * the form cell gave the control (null outside a form cell). Called when
+   * that changes, so the form can mark the control invalid and refuse to save.
+   */
+  onValidity: (error: string | null, controlName: string | null) => void;
 }
 
 const useStyles = makeStyles({
@@ -73,20 +80,23 @@ type Slot = "first" | "second";
  * form refreshes together. The rules are listed in docs/usage.md under
  * "Interaction rules".
  */
-export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, onCommit }) => {
+export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disabled, rules, revealMs, layout, label, onCommit, onValidity }) => {
   const styles = useStyles();
 
   // Measure our own width and read the form's cell label around us; the form
   // cell, not the host API, decides the layout and the labels. Both are
   // re-read whenever our size changes, which is when the form relaid out.
+  // The cell also names the control, for telling the form about errors.
   const rootRef = React.useRef<HTMLDivElement>(null);
   const [width, setWidth] = React.useState(0);
   const [formLabel, setFormLabel] = React.useState<FormLabel | null>(null);
+  const controlName = React.useRef<string | null>(null);
   React.useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
     const read = () => {
       setWidth(el.getBoundingClientRect().width);
+      controlName.current = readFormControlName(el);
       // Same answer, same object: a fresh object on every read would re-render
       // without end, since this runs again after each render.
       const next = readFormLabel(el);
@@ -173,9 +183,11 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   const [second, setSecond] = React.useState("");
   const [revealed, setRevealed] = React.useState<Slot | null>(null);
   const [editing, setEditing] = React.useState(false); // false with a stored value = showing the dots
-  // Focus left a field while an entry was in progress: a second entry that is
-  // still shorter than the first is compared too. Cleared by the next edit.
-  const [checkedOnBlur, setCheckedOnBlur] = React.useState(false);
+  // How far focus has gone while an entry was in progress: to the other field,
+  // when a shorter second entry is compared too, or out of the control, when
+  // an entry made only once is flagged as well. Reset by the next edit; never
+  // stepped back down by a later blur, so a flag stays until the person acts.
+  const [left, setLeft] = React.useState<Left>("none");
   // A value ready to write ("" for a clear), waiting for focus to leave the
   // control; the typed dots stay until then. Cleared by the next edit.
   const [pending, setPending] = React.useState<string | null>(null);
@@ -204,7 +216,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
     setRevealed(null);
     setEditing(false);
     setPending(null);
-    setCheckedOnBlur(false);
+    setLeft("none");
   };
   // Whatever the platform now holds is the truth; a fresh value ends any entry
   // in progress. The push of the value this control just wrote changes
@@ -229,8 +241,23 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   );
   React.useEffect(() => () => window.clearTimeout(timer.current), []);
 
-  const firstError = validateEntry(first, rules);
-  const secondError = firstError ? null : validateConfirm(first, second, checkedOnBlur);
+  const errors = validate(first, second, rules, left);
+
+  // The form hears about the error on show (one message: the first field's
+  // outranks the second's) and again when it goes. Synchronously with the
+  // render, so a blur caused by a click on Save has told the form before the
+  // click lands; and directly from the Ctrl+S handler below, before the key
+  // reaches the form. Told once per change either way.
+  const reported = React.useRef<string | null>(null);
+  const report = (e: Errors) => {
+    const message = disabled ? null : (e.first ?? e.second);
+    if (message === reported.current) return;
+    reported.current = message;
+    onValidity(message, controlName.current);
+  };
+  const formMessage = errors.first ?? errors.second;
+  React.useLayoutEffect(() => report(errors), [formMessage, disabled]);
+  React.useEffect(() => () => report({ first: null, second: null }), []);
 
   // Both entries agree and pass validation: ready to write. The write itself
   // waits for focus to leave the control (onBlur below, or Ctrl+S in
@@ -256,7 +283,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
   // write, and not the one focus left.
   const edited = () => {
     setPending(null);
-    setCheckedOnBlur(false);
+    setLeft("none");
     returned.current = null;
   };
 
@@ -349,9 +376,17 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
         secondRef.current?.focus();
         return;
       }
-      // The form's save shortcut, with focus still here: write first, so the
-      // save takes the value. The event goes on to the form.
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") writePending();
+      // The form's save shortcut, with focus still here: write a ready value
+      // first, so the save takes it; or judge an unfinished entry as if focus
+      // had left, and tell the form now, so the save is refused. The event
+      // goes on to the form.
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        if (pending !== null) writePending();
+        else if (state === "entering") {
+          setLeft("control");
+          report(validate(first, second, rules, "control"));
+        }
+      }
       if (returned.current === slot && CARET_KEYS.includes(e.key)) e.preventDefault();
     },
     onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
@@ -360,7 +395,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
       const toOtherField = e.relatedTarget === firstRef.current || e.relatedTarget === secondRef.current;
       if (pending !== null) {
         if (!toOtherField) writePending();
-      } else if (state === "entering") setCheckedOnBlur(true);
+      } else if (state === "entering") setLeft((l) => (l === "control" || !toOtherField ? "control" : "field"));
     },
   });
 
@@ -379,6 +414,7 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
     setSecond("");
     setRevealed(null);
     setEditing(false);
+    setLeft("none");
     firstRef.current?.focus();
   };
 
@@ -403,8 +439,8 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           orientation={firstInline ? "horizontal" : "vertical"}
           className={firstClass}
           style={firstFieldStyle}
-          validationState={firstError ? "error" : "none"}
-          validationMessage={firstError ?? undefined}
+          validationState={errors.first ? "error" : "none"}
+          validationMessage={errors.first ?? undefined}
         >
           <Input
             ref={firstRef}
@@ -427,8 +463,8 @@ export const SealedInputView: React.FC<ISealedInputViewProps> = ({ stored, disab
           orientation={labels.secondInline ? "horizontal" : "vertical"}
           className={secondClass}
           style={secondFieldStyle}
-          validationState={secondError ? "error" : "none"}
-          validationMessage={secondError ?? undefined}
+          validationState={errors.second ? "error" : "none"}
+          validationMessage={errors.second ?? undefined}
         >
           <Input
             ref={secondRef}

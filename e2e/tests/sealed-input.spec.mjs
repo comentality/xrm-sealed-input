@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openHarness, harnessValue, shot, dots, collectConsole, setWidth, wrapInFormCell, fakeCellBoxes } from './harness.mjs';
+import { openHarness, harnessValue, shot, dots, collectConsole, setWidth, wrapInFormCell, fakeCellBoxes, fakeForm, formState } from './harness.mjs';
 
 // 046454286 is the published Luhn-valid SIN example; 046454287 fails the checksum.
 const GOOD_SIN = '046454286';
@@ -396,6 +396,136 @@ test.describe('confirmation and storing', () => {
     await page.keyboard.press('Control+S');
     await expect(harnessValue(page)).toHaveValue('1234');
     await expect(c.stored).toBeVisible();
+  });
+});
+
+test.describe('leaving the control', () => {
+  test('an entry made once is flagged on the empty second field when focus leaves the control', async ({ page }) => {
+    const c = await openHarness(page, { revealMs: 0 });
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await page.keyboard.press('Tab'); // to the second field: still inside, nothing to say yet
+    await expect(c.second).toBeFocused();
+    await expect(c.errors).toHaveCount(0);
+    await c.second.blur();
+    await expect(c.errors).toHaveText(['Re-enter the value to confirm.']);
+    await expect(c.second).toHaveAttribute('aria-invalid', 'true');
+    await expect(harnessValue(page)).toHaveValue('');
+    await shot(page, 'entry-incomplete');
+    // Coming back in without typing keeps the flag; the first keystroke lifts it.
+    await c.second.click();
+    await expect(c.errors).toHaveText(['Re-enter the value to confirm.']);
+    await page.keyboard.type('1');
+    await expect(c.errors).toHaveCount(0);
+    await page.keyboard.type('234');
+    await c.second.blur();
+    await expect(harnessValue(page)).toHaveValue('1234');
+  });
+
+  test('a second entry with no first one is flagged on the empty first field', async ({ page }) => {
+    const c = await openHarness(page, { revealMs: 0 });
+    await c.second.click();
+    await page.keyboard.type('99');
+    await expect(c.errors).toHaveCount(0); // nothing to compare with while typing
+    await c.second.blur();
+    await expect(c.errors).toHaveText(['Enter the value here first.']);
+    await expect(c.first).toHaveAttribute('aria-invalid', 'true');
+    await expect(harnessValue(page)).toHaveValue('');
+    // Typing the first entry: the flag goes, and the usual live comparison
+    // takes over (the second entry is already as long as the first).
+    await c.first.click();
+    await page.keyboard.type('9');
+    await expect(c.errors).toHaveText(['Does not match the first entry.']);
+    await page.keyboard.type('9');
+    await expect(c.errors).toHaveCount(0);
+    await c.first.blur();
+    await expect(harnessValue(page)).toHaveValue('99');
+  });
+
+  test('Start over lifts the flag', async ({ page }) => {
+    const c = await openHarness(page, { revealMs: 0 });
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await c.first.blur();
+    await expect(c.errors).toHaveCount(1);
+    await c.startOver.click();
+    await expect(c.errors).toHaveCount(0);
+    await expect(c.entry).toHaveAttribute('data-state', 'empty');
+  });
+
+  test('a short SIN is flagged when focus leaves, and is never stored even when typed twice', async ({ page }) => {
+    const c = await openHarness(page, { validation: 'sin', revealMs: 0 });
+    await c.first.click();
+    await page.keyboard.type('12345');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('12345');
+    await expect(c.errors).toHaveCount(0);
+    await expect(c.entry).not.toHaveAttribute('data-pending', 'true');
+    await c.second.blur();
+    await expect(c.errors).toHaveText(['Not a valid SIN. Check the nine digits.']);
+    await expect(harnessValue(page)).toHaveValue('');
+  });
+});
+
+test.describe('the form', () => {
+  // The control tells the form about its errors through the form's own
+  // client API (window.Xrm.Page, a stand-in here), naming the control after
+  // the cell it sits in; the form marks it invalid and will not save.
+  test('an error marks the control invalid on the form, and fixing it clears the mark', async ({ page }) => {
+    await fakeForm(page);
+    const c = await openHarness(page, { width: 560, revealMs: 0 });
+    await wrapInFormCell(page, { label: 'left', width: 560 });
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('1239');
+    await expect(c.errors).toHaveText(['Does not match the first entry.']);
+    expect((await formState(page)).calls).toEqual([{ op: 'set', name: 'sealed', message: 'Does not match the first entry.', id: 'KK.SealedInput' }]);
+    await page.keyboard.press('Backspace');
+    await expect(c.errors).toHaveCount(0);
+    expect((await formState(page)).current).toBeNull();
+    await page.keyboard.type('4');
+    await c.second.blur();
+    await expect(c.stored).toBeVisible();
+    expect((await formState(page)).current).toBeNull();
+
+    // An entry made once, then leaving the control; Start over lifts it.
+    await c.first.click();
+    await page.keyboard.type('77');
+    await c.first.blur();
+    expect((await formState(page)).current).toEqual({ name: 'sealed', message: 'Re-enter the value to confirm.' });
+    await c.startOver.click();
+    expect((await formState(page)).current).toBeNull();
+  });
+
+  test('Ctrl+S with an unfinished entry marks the control before the form sees the key', async ({ page }) => {
+    await fakeForm(page);
+    const c = await openHarness(page, { width: 560, revealMs: 0 });
+    await wrapInFormCell(page, { label: 'left', width: 560 });
+    await c.first.click();
+    await page.keyboard.type('1234');
+    await page.keyboard.press('Control+S');
+    await expect(c.errors).toHaveText(['Re-enter the value to confirm.']);
+    expect((await formState(page)).atSave).toEqual([{ name: 'sealed', message: 'Re-enter the value to confirm.' }]);
+    await expect(harnessValue(page)).toHaveValue('');
+    // A ready value is written and nothing is flagged.
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('1234');
+    await page.keyboard.press('Control+S');
+    await expect(harnessValue(page)).toHaveValue('1234');
+    expect((await formState(page)).atSave[1]).toBeNull();
+  });
+
+  test('the first field outranks the second in what the form is told', async ({ page }) => {
+    await fakeForm(page);
+    const c = await openHarness(page, { width: 560, validation: 'sin', revealMs: 0 });
+    await wrapInFormCell(page, { label: 'left', width: 560 });
+    await c.first.click();
+    await page.keyboard.type(BAD_SIN);
+    expect((await formState(page)).current).toEqual({ name: 'sealed', message: 'Not a valid SIN. Check the nine digits.' });
+    await c.first.blur();
+    expect((await formState(page)).current).toEqual({ name: 'sealed', message: 'Not a valid SIN. Check the nine digits.' });
+    expect((await formState(page)).calls).toHaveLength(1);
   });
 });
 

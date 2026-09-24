@@ -7,6 +7,17 @@ import { Box, FormLabel, Placement, SpanColumns, labelPlacement } from "./sealed
 // API; when it is not there, the answer is null and the caller falls back.
 
 const CONTAINER = '[data-id$="FieldSectionItemContainer"]';
+const CONTAINER_SUFFIX = "-FieldSectionItemContainer";
+
+/**
+ * The name the form knows this control by, read from the cell container's
+ * data-id ("<control id>-FieldSectionItemContainer"): the same id the form's
+ * client API takes in getControl. Null outside a recognised form cell.
+ */
+export function readFormControlName(root: HTMLElement): string | null {
+  const id = root.closest(CONTAINER)?.getAttribute("data-id") ?? "";
+  return id.endsWith(CONTAINER_SUFFIX) && id.length > CONTAINER_SUFFIX.length ? id.slice(0, -CONTAINER_SUFFIX.length) : null;
+}
 
 function box(el: Element): Box {
   const r = el.getBoundingClientRect();

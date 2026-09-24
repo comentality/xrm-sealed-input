@@ -101,6 +101,41 @@ export function collectConsole(page) {
 }
 
 /**
+ * Installs a stand-in for the form's client API before the page loads: a
+ * window.Xrm whose Page hands out controls that record setNotification and
+ * clearNotification in window.__form (calls in order, and the notification
+ * standing now). A keydown listener on window, which runs after the
+ * control's own handler on the same event, notes what stood at each Ctrl+S:
+ * that is what the form's save would have found. Call before openHarness.
+ */
+export async function fakeForm(page) {
+  await page.addInitScript(() => {
+    const form = { calls: [], current: null, atSave: [] };
+    window.__form = form;
+    const control = (name) => ({
+      getName: () => name,
+      setNotification: (message, id) => {
+        form.calls.push({ op: 'set', name, message, id });
+        form.current = { name, message };
+        return true;
+      },
+      clearNotification: (id) => {
+        form.calls.push({ op: 'clear', name, id });
+        form.current = null;
+        return true;
+      },
+    });
+    window.Xrm = { Page: { getControl: (name) => control(name), getAttribute: () => null } };
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') form.atSave.push(form.current);
+    });
+  });
+}
+
+/** What the stand-in form has recorded so far. */
+export const formState = (page) => page.evaluate(() => window.__form);
+
+/**
  * Puts the control inside a copy of the DOM a Unified Interface form cell
  * has: a container whose data-id ends in FieldSectionItemContainer holding a
  * <label id="...-field-label"> and the control area. `label` is where the

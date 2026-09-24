@@ -8,7 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const from = path.join(here, 'shots');
 const to = path.join(here, '..', 'docs', 'img');
 fs.mkdirSync(to, { recursive: true });
-const keep = ['entry-empty', 'entry-typing', 'entry-masked', 'entry-mismatch', 'entry-sin-invalid', 'entry-replacing', 'stored', 'stored-saved',
+const keep = ['entry-empty', 'entry-typing', 'entry-masked', 'entry-mismatch', 'entry-incomplete', 'entry-sin-invalid', 'entry-replacing', 'stored', 'stored-saved',
   'form-mock-typing', 'form-mock-empty-section', 'form-mock-typing-section', 'form-mock-stored-section',
   'layout-narrow', 'layout-wide', 'layout-wide-mismatch',
   // Label-position mock-ups from mock-labels.mjs.

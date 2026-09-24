@@ -78,30 +78,52 @@ export function sinValid(value: string): boolean {
 }
 
 /**
- * Error for a complete first entry, or null when it passes. Only complains
- * once the entry is long enough to judge, so it stays quiet mid-typing.
+ * Error for the first entry, or null when it passes. Mid-typing only a
+ * complete entry is judged (a SIN once nine digits are in), so it stays quiet
+ * while the person types; `strict` judges a short one too.
  */
-export function validateEntry(value: string, rules: Rules): string | null {
+export function validateEntry(value: string, rules: Rules, strict = false): string | null {
+  if (value.length === 0) return null;
   if (rules.validation === "sin") {
-    if (value.length < 9) return null;
+    if (value.length < 9 && !strict) return null;
     return sinValid(value) ? null : "Not a valid SIN. Check the nine digits.";
   }
   return null;
 }
 
-/**
- * Error for the confirmation entry, or null. Quiet while it is still shorter
- * than the first, unless `strict`: after focus has left a field, a shorter
- * second entry is compared too.
- */
-export function validateConfirm(first: string, second: string, strict = false): string | null {
-  if (second.length === 0 || (!strict && second.length < first.length)) return null;
-  return second === first ? null : "Does not match the first entry.";
+/** How far focus has gone since the last edit: nowhere, to the other field, or out of the control. */
+export type Left = "none" | "field" | "control";
+
+/** The error under each field, or null. */
+export interface Errors {
+  first: string | null;
+  second: string | null;
 }
 
-/** True when both entries are complete, equal, and pass validation. */
+export const ENTER_FIRST = "Enter the value here first.";
+export const REENTER = "Re-enter the value to confirm.";
+export const MISMATCH = "Does not match the first entry.";
+
+/**
+ * Errors for both fields. While typing, the first entry is judged once it is
+ * complete and the second once it is as long as the first. After focus has
+ * left a field, a shorter second entry is compared too. After it has left the
+ * control, an entry made only once is flagged on the empty field, and a short
+ * first entry fails validation. A failing first entry silences the second.
+ */
+export function validate(first: string, second: string, rules: Rules, left: Left): Errors {
+  const out = left === "control";
+  if (first.length === 0) return { first: out && second.length > 0 ? ENTER_FIRST : null, second: null };
+  const firstError = validateEntry(first, rules, out);
+  if (firstError) return { first: firstError, second: null };
+  if (second.length === 0) return { first: null, second: out ? REENTER : null };
+  if (left === "none" && second.length < first.length) return { first: null, second: null };
+  return { first: null, second: second === first ? null : MISMATCH };
+}
+
+/** True when both entries are complete, equal, and pass validation in full. */
 export function canCommit(first: string, second: string, rules: Rules): boolean {
-  return first.length > 0 && first === second && validateEntry(first, rules) === null;
+  return first.length > 0 && first === second && validateEntry(first, rules, true) === null;
 }
 
 // Labels. The form usually draws the cell label itself (left of the control
