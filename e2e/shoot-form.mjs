@@ -81,10 +81,15 @@ export async function shootForm(page, setup) {
   out.display = await snap('display');
 
   // An entry typed once, then focus leaves: the control flags the empty
-  // second field and marks itself invalid on the form, so a save must not go
-  // through. Screenshot the cell for the form's own error mark, then read the
-  // column back: unchanged. Start over lifts the mark.
-  const before = (await webApi(page, 'GET', `contacts(${setup.contactId})?$select=${setup.sin}`)).data[setup.sin] ?? null;
+  // second field and marks itself invalid on the form, so a save must be
+  // refused. The record is made dirty first, with a marker in First Name, so
+  // that the save has something to do; the form's own save() must then
+  // reject and the marker must not reach the column. Screenshot the cell for
+  // the form's error mark on the way. Start over lifts the mark, and the
+  // marker goes in with the good SIN at the end.
+  const marker = `Jane ${Date.now()}`;
+  const firstName = page.locator('[data-id="firstname.fieldControl-text-box-text"]');
+  await firstName.fill(marker);
   await first.first().click();
   await page.keyboard.type(GOOD_SIN);
   await first.first().blur();
@@ -92,24 +97,19 @@ export async function shootForm(page, setup) {
   await page.waitForTimeout(500);
   out.incomplete = await snap('incomplete');
   out.incomplete.error = await page.locator('.fui-Field__validationMessage').first().innerText().catch(() => null);
-  // The form's own view of it: which controls carry a notification, if the
-  // client API will say (getNotifications is not on every version).
-  out.incomplete.formNotifications = await page.evaluate(() => {
-    try {
-      return Xrm.Page.ui.controls
-        .get()
-        .map((c) => ({ name: c.getName(), notifications: c.getNotifications ? c.getNotifications() : undefined }))
-        .filter((c) => c.notifications === undefined || c.notifications.length > 0);
-    } catch (e) { return { error: String(e) }; }
-  });
-  await first.first().focus();
-  await page.keyboard.press('Control+S');
-  await page.waitForTimeout(4000);
-  out.incomplete.saveDialog = await page.locator('[data-id="errorDialog_subtitle"], [data-id="dialogSubtitle"]').first().innerText().catch(() => null);
-  const after = (await webApi(page, 'GET', `contacts(${setup.contactId})?$select=${setup.sin}`)).data[setup.sin] ?? null;
-  out.incomplete.columnUnchanged = after === before;
+  out.incomplete.save = await page.evaluate(() =>
+    Xrm.Page.data.save().then(
+      () => 'saved',
+      (e) => `refused: ${(e && (e.message ?? JSON.stringify(e))) || String(e)}`.slice(0, 300),
+    ),
+  );
+  await page.waitForTimeout(1500);
+  const held = await webApi(page, 'GET', `contacts(${setup.contactId})?$select=firstname,${setup.sin}`);
+  out.incomplete.markerSaved = held.data.firstname === marker; // must be false: the save was blocked
+  out.incomplete.sinNow = held.data[setup.sin] ?? null;
   await page.locator('[data-testid="sealed-startover"]').first().click();
   await page.waitForTimeout(300);
+  out.incomplete.blocked = out.incomplete.save.startsWith('refused') && !out.incomplete.markerSaved;
 
   // Type the SIN once, screenshot straight away so the last digit is still readable.
   await first.first().click();
@@ -131,8 +131,13 @@ export async function shootForm(page, setup) {
   // Save and read back.
   await page.keyboard.press('Control+S');
   await page.waitForTimeout(4000);
-  const rec = await webApi(page, 'GET', `contacts(${setup.contactId})?$select=${setup.sin},${setup.bank}`);
-  out.saved = { sin: rec.data[setup.sin], bank: rec.data[setup.bank], sinMatches: rec.data[setup.sin] === GOOD_SIN };
+  const rec = await webApi(page, 'GET', `contacts(${setup.contactId})?$select=firstname,${setup.sin},${setup.bank}`);
+  out.saved = {
+    sin: rec.data[setup.sin],
+    bank: rec.data[setup.bank],
+    sinMatches: rec.data[setup.sin] === GOOD_SIN,
+    markerSaved: rec.data.firstname === marker, // the save that was refused above goes through now
+  };
   return out;
 }
 
