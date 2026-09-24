@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openHarness, harnessValue, shot, dots, collectConsole, setWidth, wrapInFormCell } from './harness.mjs';
+import { openHarness, harnessValue, shot, dots, collectConsole, setWidth, wrapInFormCell, fakeCellBoxes } from './harness.mjs';
 
 // 046454286 is the published Luhn-valid SIN example; 046454287 fails the checksum.
 const GOOD_SIN = '046454286';
@@ -582,6 +582,61 @@ test.describe('labels', () => {
     await wrapInFormCell(page, { label: 'hidden', sibling: 'top', width: 360 });
     await expect(c.entry).toHaveAttribute('data-labels', 'both');
     await expect(c.entry).toHaveAttribute('data-label-position', 'above');
+  });
+
+  test('a cell spanning two columns lays the fields out like two stock cells on that row', async ({ page }) => {
+    // Labels on the left, cell label shown: the first input is the width of
+    // the stock input in the first column, "Re-enter" starts where the second
+    // column's label starts, and the second input is the width of that
+    // column's stock input.
+    const near = (a, b, tol = 2) => expect(Math.abs(a - b)).toBeLessThanOrEqual(tol);
+    // The visible box of an input is Fluent's bordered wrapper around it.
+    const wrapper = (loc) => loc.locator('..').boundingBox();
+    const c = await openHarness(page, { width: 736 });
+    await wrapInFormCell(page, { label: 'left', width: 736, columns: 2 });
+    await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
+    await expect(c.entry).toHaveAttribute('data-layout', 'side-by-side');
+    await expect(c.entry).toHaveAttribute('data-span', '2');
+    await expect(c.labels).toHaveText(['Re-enter']);
+    const col1 = await fakeCellBoxes(page, 'sibling');
+    const col2 = await fakeCellBoxes(page, 'sibling2');
+    const first = await wrapper(c.first);
+    const second = await wrapper(c.second);
+    const reenter = await c.labels.first().boundingBox();
+    near(first.x, col1.area.x);
+    near(first.width, col1.area.width);
+    near(reenter.x, col2.label.x);
+    near(second.x, col2.area.x);
+    near(second.width, col2.area.width);
+    near(first.y, second.y, 1);
+    await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-two-columns.png` });
+
+    // Cell label hidden: the first label takes the first column's label
+    // column too, so both inputs still sit on the stock ones.
+    await openHarness(page, { width: 736 });
+    await wrapInFormCell(page, { label: 'hidden', sibling: 'left', width: 736, columns: 2 });
+    await expect(c.entry).toHaveAttribute('data-form-label', 'hidden');
+    await expect(c.entry).toHaveAttribute('data-span', '2');
+    await expect(c.labels).toHaveText(['SIN', 'Re-enter']);
+    const h1 = await fakeCellBoxes(page, 'sibling');
+    const h2 = await fakeCellBoxes(page, 'sibling2');
+    const hf = await wrapper(c.first);
+    const hs = await wrapper(c.second);
+    const hl = await c.labels.first().boundingBox();
+    const hr = await c.labels.nth(1).boundingBox();
+    near(hl.x, h1.label.x);
+    near(hf.x, h1.area.x);
+    near(hf.width, h1.area.width);
+    near(hr.x, h2.label.x);
+    near(hs.x, h2.area.x);
+    near(hs.width, h2.area.width);
+    await page.locator('[data-testid="fake-section"]').screenshot({ path: `shots/labels-form-two-columns-hidden.png` });
+
+    // A cell of one column next to others is not spanning anything.
+    await openHarness(page, { width: 560 });
+    await wrapInFormCell(page, { label: 'left', width: 560 });
+    await expect(c.entry).toHaveAttribute('data-form-label', 'shown');
+    await expect(c.entry).not.toHaveAttribute('data-span', /.*/);
   });
 
   test('typing inside a form cell stores the value, without console errors', async ({ page }) => {

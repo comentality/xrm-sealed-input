@@ -122,6 +122,24 @@ export interface FormLabel {
    * neighbouring cells.
    */
   labelWidth: number | null;
+  /**
+   * The columns of the section this cell spans, when it is wider than the
+   * cells around it; null when it takes one column like they do.
+   */
+  span: SpanColumns | null;
+}
+
+/**
+ * A cell that spans two columns of its section, measured from the control's
+ * left edge in px: where the first column's control area ends, and where the
+ * next column's label and control area begin. With labels on the left the
+ * two fields are laid out to these edges, so each input is the width of a
+ * stock field in its column and "Re-enter" takes the section's label column.
+ */
+export interface SpanColumns {
+  firstEnd: number;
+  secondLabel: number;
+  secondArea: number;
 }
 
 export interface Box {

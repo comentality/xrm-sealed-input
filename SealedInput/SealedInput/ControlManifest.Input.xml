@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest>
-  <control namespace="KK" constructor="SealedInput" version="0.4.0" display-name-key="Sealed Input" description-key="Entry field for sensitive numbers such as bank accounts and SIN. Typed characters are masked, the clipboard is blocked, and the value must be entered twice before it is stored." control-type="virtual" >
+  <control namespace="KK" constructor="SealedInput" version="0.4.1" display-name-key="Sealed Input" description-key="Entry field for sensitive numbers such as bank accounts and SIN. Typed characters are masked, the clipboard is blocked, and the value must be entered twice before it is stored." control-type="virtual" >
     <external-service-usage enabled="false">
     </external-service-usage>
     <property name="value" display-name-key="Value" description-key="Text column that receives the entered value" of-type="SingleLine.Text" usage="bound" required="true" />

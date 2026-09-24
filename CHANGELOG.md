@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **A cell made two columns wide now lays its two fields out like two stock cells on that row.**
+  In a two-column section with labels on the left, the first input is the width of the stock input in the first
+  column, "Re-enter" starts where that column's labels start and takes the section's label width, and the second
+  input is the width of the stock input there. The control measures the neighbouring cells, so any label width works.
+  ![SIN input under First Name's input, Re-enter and its input under Last Name's](docs/img/slice-two-columns.png)
+- e2e: the fixture form gains a two-column section with a stock row and three spanning cells, and the real-form run
+  now fails when the control's boxes stray from the stock cells' by more than 2px; 40 harness tests.
+
 ## 0.4.0 - 2026-09-09
 
 - **Sealed Input makes a person type a sensitive number twice, masking every character and blocking the clipboard.**

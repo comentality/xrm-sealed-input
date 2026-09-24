@@ -117,6 +117,19 @@ setting for the wording, which labels go, or where they sit.
 |---|---|
 | ![both labels beside the fields, the first in the form's label column](img/labels-form-hidden.png) | ![the inputs shrink rather than overflow](img/labels-form-hidden-narrow.png) |
 
+In a section with two columns and labels on the left, a cell made two
+columns wide lays its fields out like two stock cells on that row: the first
+input is the width of the stock input in the first column, "Re-enter" starts
+where the second column's labels start and takes that column's label width,
+and the second input is the width of the stock input there. The control
+measures the neighbouring cells for this, so it holds for whatever label
+width the section has. A hidden cell label puts the first label in the first
+column's label column the same way.
+
+| Cell spanning two columns, above a row of two stock cells | The same with the cell label hidden |
+|---|---|
+| ![SIN input under First Name's, Re-enter and its input under Last Name's](img/labels-form-two-columns.png) | ![SIN label and input under First Name's, Re-enter under Last Name's](img/labels-form-two-columns-hidden.png) |
+
 ## Interaction rules
 
 The rules the control follows, kept as one list. Each has a harness test.

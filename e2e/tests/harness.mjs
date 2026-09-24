@@ -110,9 +110,12 @@ export function collectConsole(page) {
  * `labelWidth` is the fake label column, 120px unless said otherwise.
  * With `width`, the control area is sized to that many pixels (the harness
  * pane would otherwise clamp it) and the viewport widened to make room.
+ * With `columns: 2`, the section has two columns: a row of two stock cells
+ * (First Name, Last Name; data-ids sibling- and sibling2-) above the
+ * control's cell, which spans both columns, and `width` is the whole row.
  */
-export async function wrapInFormCell(page, { label = 'left', sibling = 'left', text = 'SIN', width, labelWidth = 120 } = {}) {
-  await page.evaluate(({ label, sibling, text, labelWidth }) => {
+export async function wrapInFormCell(page, { label = 'left', sibling = 'left', text = 'SIN', width, labelWidth = 120, columns = 1 } = {}) {
+  await page.evaluate(({ label, sibling, text, labelWidth, columns }) => {
     const control = document.querySelector('.control-container');
     const parent = control.parentElement;
     const cell = (id, where, labelText, area) => {
@@ -128,6 +131,9 @@ export async function wrapInFormCell(page, { label = 'left', sibling = 'left', t
       l.textContent = labelText;
       l.style.display = where === 'hidden' ? 'none' : 'block';
       l.style.width = where === 'top' ? 'auto' : `${labelWidth}px`;
+      // A hidden cell label takes its wrapper with it, so the control area
+      // starts at the cell's edge, as on the real form.
+      if (where === 'hidden') wrap.style.display = 'none';
       wrap.appendChild(l);
       c.appendChild(wrap);
       const a = document.createElement('div');
@@ -139,22 +145,51 @@ export async function wrapInFormCell(page, { label = 'left', sibling = 'left', t
     };
     const section = document.createElement('section');
     section.setAttribute('data-testid', 'fake-section');
-    const stock = document.createElement('div');
-    stock.style.height = '32px';
-    stock.style.background = '#eee';
-    section.appendChild(cell('sibling', sibling, 'First Name', stock));
+    const stockInput = () => {
+      const stock = document.createElement('div');
+      stock.style.height = '32px';
+      stock.style.background = '#eee';
+      return stock;
+    };
+    if (columns === 2) {
+      // Two cells on one row, each half the width, like a two-column
+      // section; the cells are separated by the same gap the form uses
+      // between its columns (16px).
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.columnGap = '16px';
+      row.style.marginBottom = '8px';
+      for (const [id, name] of [['sibling', 'First Name'], ['sibling2', 'Last Name']]) {
+        const c = cell(id, sibling, name, stockInput());
+        c.style.flex = '1 1 0';
+        c.style.minWidth = '0';
+        row.appendChild(c);
+      }
+      section.appendChild(row);
+    } else {
+      section.appendChild(cell('sibling', sibling, 'First Name', stockInput()));
+    }
     section.appendChild(cell('sealed', label, text, control));
     parent.appendChild(section);
     window.__fakeSection = section;
-  }, { label, sibling, text, labelWidth });
+  }, { label, sibling, text, labelWidth, columns });
   if (width !== undefined) {
     await page.setViewportSize({ width: Math.max(1400, width + 400), height: 800 });
-    // The fake cell adds its label column and an 8px gap on the left.
+    // The fake cell adds its label column and an 8px gap on the left; with
+    // two columns, `width` is the row and the control gets the rest of it.
+    const sectionWidth = columns === 2 ? width : label === 'top' ? width : width + labelWidth + 8;
+    const controlWidth = columns === 2 ? (label === 'left' ? width - labelWidth - 8 : width) : width;
     await page.evaluate(({ w, cw }) => {
       document.querySelector('[data-testid="fake-section"]').style.width = `${w}px`;
       document.querySelector('.control-container').style.width = `${cw}px`;
-    }, { w: label === 'top' ? width : width + labelWidth + 8, cw: width });
+    }, { w: sectionWidth, cw: controlWidth });
   }
   // Nudge the size so the ResizeObserver fires and the control re-reads the DOM.
   await page.evaluate(() => { document.querySelector('.control-container').style.paddingRight = '1px'; });
+}
+
+/** Label and control-area boxes of a fake stock cell put there by wrapInFormCell. */
+export async function fakeCellBoxes(page, id = 'sibling') {
+  const c = page.locator(`[data-id="${id}-FieldSectionItemContainer"]`);
+  return { label: await c.locator('label').boundingBox(), area: await c.locator('> div:nth-child(2)').boundingBox() };
 }

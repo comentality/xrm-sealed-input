@@ -27,7 +27,7 @@ Dataverse column security's job; the manual says so.
   the importable solution zip; see `.claude/skills/gh-release/SKILL.md` for the
   managed/unmanaged dance and the source zip.
 - `e2e/`: Playwright Test suite against the pcf-start harness hosted headlessly
-  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 39 tests
+  on port 8183 (`harness-server.mjs`; the sibling repo uses 8182). 40 tests
   covering masking and reveal timing, the digit filter and length cap, Ctrl+V
   and dispatched paste, drop, cut, copy and context-menu events, mismatch,
   match and store, Start over, clearing, Ctrl+S, the SIN checksum, the two
@@ -113,6 +113,28 @@ Each of these was an open question in the first README.
   label as a `<label>` whose id ends in `-field-label`; left vs above is
   decided from bounding boxes, and a hidden label borrows the position from a
   sibling cell. Outside such a container (the harness) it is "hidden, above".
+- **A cell two columns wide (2026-09-24, on the user's call).** In a
+  two-column section with labels on the left, a Sealed Input cell given
+  `colspan="2"` came out as one wide cell: the first input ran to some
+  arbitrary point, "Re-enter" took the width of its own text, and nothing
+  lined up with the stock First Name | Last Name row above. Now
+  `readFormLabel` also looks for a neighbouring cell that starts where ours
+  does but ends before it, and one that starts inside ours: that is a span,
+  and it records, from the control's left edge, where the first column's
+  control area ends and where the next column's label and control area
+  begin (`SpanColumns`). With labels on the left and the fields side by side,
+  the first field is given that width, and the second is pushed to the
+  next column's label edge with the section's label column as its label
+  track, so each input is the width of a stock input in its column and
+  "Re-enter" sits where the stock labels sit. `data-span="2"` says it is
+  on. A Top-labelled spanning cell is left as it was (Re-enter beside the
+  second input); lining that up with labels above would mean the second
+  label above its input and the first input dropped to that line, a
+  separate decision. The harness fake cell got a two-column mode
+  (`wrapInFormCell({ columns: 2 })`), the fixture form a fifth section
+  (`twoColLeft`) with a stock row and three spanning cells, and `run.mjs` a
+  geometry check (`check-two-column.mjs`) that fails the run when the
+  control's boxes stray more than 2px from the stock cells'.
 - **Interaction (2026-09-09, later that evening, on the user's call).** Focus
   selects the field's entry (or the stored dots), so typing replaces and
   Backspace clears; an entry is never appended to after coming back into
