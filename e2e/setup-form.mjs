@@ -3,7 +3,9 @@
 // "Sealed Input E2E" that shows the name with the stock control and the two
 // columns with Sealed Input (SIN with the SIN validation, bank account with a
 // 12 character cap). SIN is shown in every label situation: wide and narrow
-// column, section labels left and on top, cell label shown and hidden.
+// column, section labels left and on top, cell label shown and hidden, and in
+// a two-column section (labels on the left) where the cell spans both columns
+// above a row of two stock cells.
 // Publishes and creates a test contact "Jane Sealed Input E2E" whose bank
 // account holds a made-up number and whose SIN is empty.
 // No real personal data is involved.
@@ -50,13 +52,20 @@ export async function setupForm(page) {
       .join('');
   const sinParams = `<value>${SIN}</value><characters static="true" type="Enum">digits</characters><validation static="true" type="Enum">sin</validation><maxLength static="true" type="Whole.None">0</maxLength><revealMs static="true" type="Whole.None">1000</revealMs>`;
   const bankParams = `<value>${BANK}</value><characters static="true" type="Enum">digits</characters><validation static="true" type="Enum">none</validation><maxLength static="true" type="Whole.None">12</maxLength><revealMs static="true" type="Whole.None">1000</revealMs>`;
-  const cell = (id, label, control, showlabel = true) =>
-    `<row><cell id="${id}" showlabel="${showlabel}" locklevel="0"><labels><label description="${label}" languagecode="1033" /></labels>${control}</cell></row>`;
+  // One cell; colspan > 1 makes it span that many of its section's columns.
+  const cellOnly = (id, label, control, showlabel = true, colspan = 1) =>
+    `<cell id="${id}" showlabel="${showlabel}" locklevel="0"${colspan > 1 ? ` colspan="${colspan}"` : ''}><labels><label description="${label}" languagecode="1033" /></labels>${control}</cell>`;
+  const rowOf = (...cells) => `<row>${cells.join('')}</row>`;
+  const cell = (...args) => rowOf(cellOnly(...args));
   // Every label situation the control handles, on one form: a wide column
   // (fields side by side) and a narrow one (stacked), each with a section
   // whose labels are on the left and one whose labels are on top, and in
   // every section a SIN cell with the label hidden next to a labelled one.
-  // Ids: sections 61-64, cells 40-50, controls 21-29.
+  // Plus a two-column section with labels on the left: a row of two stock
+  // cells, then SIN, Bank account and SIN (label hidden) each spanning both
+  // columns, so the control's two-column layout can be measured against the
+  // stock cells above it.
+  // Ids: sections 61-65, cells 40-55, controls 21-32.
   const ids = {
     sinWideLeft: '{5ea1ed00-aaaa-4bbb-8ccc-000000000021}',
     bankWideLeft: bankCtrlId,
@@ -67,11 +76,16 @@ export async function setupForm(page) {
     sinNarrowTopHidden: '{5ea1ed00-aaaa-4bbb-8ccc-000000000027}',
     sinNarrowLeft: '{5ea1ed00-aaaa-4bbb-8ccc-000000000028}',
     sinNarrowLeftHidden: '{5ea1ed00-aaaa-4bbb-8ccc-000000000029}',
+    sinTwoColLeft: '{5ea1ed00-aaaa-4bbb-8ccc-000000000030}',
+    bankTwoColLeft: '{5ea1ed00-aaaa-4bbb-8ccc-000000000031}',
+    sinTwoColLeftHidden: '{5ea1ed00-aaaa-4bbb-8ccc-000000000032}',
   };
-  const sinCell = (cellNo, label, ctrl, showlabel = true) =>
-    cell(`{5ea1ed00-aaaa-4bbb-8ccc-0000000000${cellNo}}`, label, `<control id="${ctrl}" classid="${TEXT_CLASSID}" datafieldname="${SIN}" disabled="false" uniqueid="${ctrl}" />`, showlabel);
-  const section = (no, name, label, position, labelwidth, rows) =>
-    `<section name="${name}" id="{5ea1ed00-aaaa-4bbb-8ccc-0000000000${no}}" showlabel="true" showbar="false" IsUserDefined="0" layout="varwidth" columns="1" labelwidth="${labelwidth}" celllabelposition="${position}" locklevel="0">` +
+  const cellId = (cellNo) => `{5ea1ed00-aaaa-4bbb-8ccc-0000000000${cellNo}}`;
+  const sinCell = (cellNo, label, ctrl, showlabel = true, colspan = 1) =>
+    cell(cellId(cellNo), label, `<control id="${ctrl}" classid="${TEXT_CLASSID}" datafieldname="${SIN}" disabled="false" uniqueid="${ctrl}" />`, showlabel, colspan);
+  const bankControl = (ctrl) => `<control id="${ctrl}" classid="${TEXT_CLASSID}" datafieldname="${BANK}" disabled="false" uniqueid="${ctrl}" />`;
+  const section = (no, name, label, position, labelwidth, rows, columns = 1) =>
+    `<section name="${name}" id="{5ea1ed00-aaaa-4bbb-8ccc-0000000000${no}}" showlabel="true" showbar="false" IsUserDefined="0" layout="varwidth" columns="${columns}" labelwidth="${labelwidth}" celllabelposition="${position}" locklevel="0">` +
     `<labels><label description="${label}" languagecode="1033" /></labels><rows>${rows}</rows></section>`;
   const formxml =
     `<form showImage="true">` +
@@ -82,11 +96,19 @@ export async function setupForm(page) {
       cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000040}', 'First Name', `<control id="firstname" classid="${TEXT_CLASSID}" datafieldname="firstname" disabled="false" />`) +
       cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000041}', 'Last Name', `<control id="lastname" classid="${TEXT_CLASSID}" datafieldname="lastname" disabled="false" />`) +
       sinCell(42, 'SIN', ids.sinWideLeft) +
-      cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000043}', 'Bank account', `<control id="${bankCtrlId}" classid="${TEXT_CLASSID}" datafieldname="${BANK}" disabled="false" uniqueid="${bankCtrlId}" />`) +
+      cell('{5ea1ed00-aaaa-4bbb-8ccc-000000000043}', 'Bank account', bankControl(bankCtrlId)) +
       sinCell(45, 'SIN (label hidden)', ids.sinWideLeftHidden, false)) +
     section(63, 'wideTop', 'Wide column, labels on top', 'Top', 180,
       sinCell(46, 'SIN', ids.sinWideTop) +
       sinCell(47, 'SIN (label hidden)', ids.sinWideTopHidden, false)) +
+    section(65, 'twoColLeft', 'Two columns, labels on the left', 'Left', 115,
+      rowOf(
+        cellOnly(cellId(51), 'First Name', `<control id="firstname_twocol" classid="${TEXT_CLASSID}" datafieldname="firstname" disabled="false" />`),
+        cellOnly(cellId(52), 'Last Name', `<control id="lastname_twocol" classid="${TEXT_CLASSID}" datafieldname="lastname" disabled="false" />`)) +
+      sinCell(53, 'SIN', ids.sinTwoColLeft, true, 2) +
+      cell(cellId(54), 'Bank account', bankControl(ids.bankTwoColLeft), true, 2) +
+      sinCell(55, 'SIN (label hidden)', ids.sinTwoColLeftHidden, false, 2),
+      2) +
     `</sections></column>` +
     `<column width="34%"><sections>` +
     section(62, 'narrowTop', 'Narrow column, labels on top', 'Top', 115,
@@ -99,7 +121,7 @@ export async function setupForm(page) {
     `</columns></tab></tabs>` +
     `<controlDescriptions>` +
     Object.entries(ids)
-      .map(([k, id]) => `<controlDescription forControl="${id}">${sealed(k === 'bankWideLeft' ? bankParams : sinParams)}</controlDescription>`)
+      .map(([k, id]) => `<controlDescription forControl="${id}">${sealed(k.startsWith('bank') ? bankParams : sinParams)}</controlDescription>`)
       .join('') +
     `</controlDescriptions>` +
     `</form>`;

@@ -1,14 +1,17 @@
 // End to end against the test env: build the fixture form (when
 // setup-form.mjs exists) or take its ids from SETUP_JSON, screenshot it, type
-// a SIN twice, save, read back. Uses the signed-in profile in .auth.
+// a SIN twice, save, read back, then measure the two-column section against
+// its stock cells (check-two-column.mjs). Uses the signed-in profile in .auth.
 // Pass --login to sign in first in a headed window.
 // SETUP_JSON='{"formId":"...","contactId":"...","sin":"cmtl_sin","bank":"cmtl_bankaccount"}'
-// Writes shots/form-results.json, or shots/form-error.txt on failure.
+// Writes shots/form-results.json, or shots/form-error.txt on failure; exits
+// 1 when the two-column check fails (the results file is still written).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openOrg, shotsDir } from './browser.mjs';
 import { shootForm } from './shoot-form.mjs';
+import { checkTwoColumn } from './check-two-column.mjs';
 
 fs.mkdirSync(shotsDir, { recursive: true });
 const resultFile = path.join(shotsDir, 'form-results.json');
@@ -32,7 +35,10 @@ try {
   console.log('setup', JSON.stringify(result.setup));
   result.form = await shootForm(page, result.setup);
   console.log('form', JSON.stringify(result.form, null, 2));
+  result.twoColumn = await checkTwoColumn(page, result.setup);
+  console.log('twoColumn', JSON.stringify(result.twoColumn, null, 2));
   fs.writeFileSync(resultFile, JSON.stringify(result, null, 2));
+  if (!result.twoColumn.ok) process.exitCode = 1;
 } catch (e) {
   fs.writeFileSync(errorFile, String(e?.stack ?? e) + '\n' + JSON.stringify(result, null, 2));
   console.error(e);
