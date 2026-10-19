@@ -30,7 +30,10 @@ Deviations from the default release flow.
 - **Notes.** Include: platform libraries React 16.14.0 and Fluent 9.46.2 are
   required by the environment (newer Fluent is rejected on import); the column
   itself is protected by Dataverse column security, not by this control; a
-  half-finished entry cannot block the form's save. The test environment
+  half-finished or invalid entry blocks the form's save through a control
+  notification set via the page's `Xrm.Page`, so the block needs a
+  model-driven form (on a custom page the errors show and nothing else
+  happens). The test environment
   already holds the control unmanaged from `pac pcf push`
   (`PowerAppsTools_cmtl`), so the managed zip will conflict there — install
   testing belongs in a fresh environment.
