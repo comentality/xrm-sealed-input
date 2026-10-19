@@ -19,3 +19,5 @@ e2e/shots/label-dom.json
 e2e/shots/field-styles.json
 e2e/shots/label-matrix.html
 release
+e2e/shots/form-results.json
+e2e/shots/form-error.txt
