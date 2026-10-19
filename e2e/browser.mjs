@@ -3,8 +3,25 @@
 import { chromium } from 'playwright';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
-export const orgUrl = (process.env.ORG_URL ?? 'https://org7a56f694.crm3.dynamics.com').replace(/\/$/, '');
+// The environment: ORG_URL when set, otherwise the one the active pac auth
+// profile points at (the one `pac pcf push` deploys to).
+export const orgUrl = (process.env.ORG_URL || pacOrgUrl()).replace(/\/$/, '');
+
+function pacOrgUrl() {
+  let out;
+  try {
+    out = execSync('pac org who --json', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    throw new Error('No environment: set ORG_URL, or select one with pac auth create / pac auth select');
+  }
+  const json = out.split(/\r?\n/).find((l) => l.trim().startsWith('{'));
+  const url = json && JSON.parse(json).OrgUrl;
+  if (!url) throw new Error(`pac org who gave no OrgUrl; set ORG_URL instead. It said: ${out.trim()}`);
+  return url;
+}
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const profileDir = path.join(here, '.auth', 'chromium');
 export const shotsDir = path.join(here, 'shots');

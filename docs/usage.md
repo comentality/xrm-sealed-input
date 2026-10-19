@@ -311,7 +311,8 @@ npx playwright test    # starts the harness on port 8183 itself
 npm run docs           # copies the screenshots into docs/img
 ```
 
-Against a real environment, after `pac pcf push`:
+Against a real environment, after `pac pcf push` (the run goes to the environment
+of the active `pac auth` profile, or to `ORG_URL` when that is set):
 
 ```powershell
 node run.mjs --login   # first time: sign in in the window that opens
