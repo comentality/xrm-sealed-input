@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 - 2026-10-22
 
 - **An entry typed only once is flagged when focus leaves the control, and the form will not save until it is fixed.**
   "Re-enter the value to confirm." under the empty second field, or "Enter the value here first." under the empty
