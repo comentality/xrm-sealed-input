@@ -1,6 +1,6 @@
 {
   "name": "xrm-sealed-input",
-  "version": "0.5.0",
+  "version": "0.5.1-dev",
   "description": "Sealed Input: a PCF field control for typing a sensitive number by hand, twice, with the clipboard blocked.",
   "scripts": {
     "build": "pcf-scripts build",
